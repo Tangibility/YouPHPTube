@@ -68,7 +68,7 @@ $obj->setNext_videos_id($_POST['next_videos_id']);
 if (!empty($_POST['description'])) {
     $obj->setDescription($_POST['description']);
 }
-if (empty($advancedCustom->userCanNotChangeCategory) || User::isAdmin()) {
+if (empty($advancedCustomUser->userCanNotChangeCategory) || User::isAdmin()) {
     $obj->setCategories_id($_POST['categories_id']);
 }
 $obj->setVideoGroups(empty($_POST['videoGroups']) ? array() : $_POST['videoGroups']);
@@ -77,6 +77,26 @@ if (User::isAdmin()) {
     $obj->setUsers_id($_POST['users_id']);
 }
 
+$obj->setCan_download(@$_POST['can_download']);
+$obj->setCan_share(@$_POST['can_share']);
+$obj->setTrailer1(@$_POST['trailer1']);
+$obj->setRrating(@$_POST['rrating']);
+
 $resp = $obj->save(true);
 
-echo '{"status":"' . !empty($resp) . '", "msg": "' . $msg . '", "info":' . json_encode($info) . ', "infoObj":' . json_encode($infoObj) . ', "videos_id":' . intval($resp) . '}';
+// add tags
+$videoTags = YouPHPTubePlugin::loadPluginIfEnabled('VideoTags');
+if(!empty($videoTags)){
+    $tagsSaved = VideoTags::saveTags($_POST['videoTags'], $resp);
+    //var_dump($tagsSaved);exit;
+}
+
+$obj = new stdClass();
+$obj->status = !empty($resp);
+$obj->msg = $msg;
+$obj->info = json_encode($info);
+$obj->infoObj = json_encode($infoObj);
+$obj->videos_id = intval($resp);
+$obj->video = Video::getVideo($obj->videos_id, false);
+
+echo json_encode($obj);

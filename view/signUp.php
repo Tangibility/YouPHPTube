@@ -5,10 +5,10 @@ if(!isset($global['systemRootPath'])){
 }
 require_once $global['systemRootPath'] . 'objects/user.php';
 
-$json_file = url_get_contents("{$global['webSiteRootURL']}plugin/CustomizeAdvanced/advancedCustom.json.php");
+//$json_file = url_get_contents("{$global['webSiteRootURL']}plugin/CustomizeAdvanced/advancedCustom.json.php");
 // convert the string to a json object
-$advancedCustom = json_decode($json_file);
-if(!empty($advancedCustom->disableNativeSignUp)){
+//$advancedCustom = json_decode($json_file);
+if(!empty($advancedCustomUser->disableNativeSignUp)){
     die(__("Sign Up Disabled"));
 }
 
@@ -23,7 +23,7 @@ $agreement = YouPHPTubePlugin::loadPluginIfEnabled("SignUpAgreement");
         ?>
     </head>
 
-    <body>
+    <body class="<?php echo $global['bodyClass']; ?>">
         <?php
         include $global['systemRootPath'] . 'view/include/navbar.php';
         ?>
@@ -53,11 +53,14 @@ $agreement = YouPHPTubePlugin::loadPluginIfEnabled("SignUpAgreement");
                                 <div class="col-md-8 inputGroupContainer">
                                     <div class="input-group">
                                         <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
-                                        <input  id="inputUser" placeholder="<?php echo __("User"); ?>" class="form-control"  type="text" value="" required >
+                                        <input  id="inputUser" placeholder="<?php echo __("User"); ?>" class="form-control"  type="<?php echo empty($advancedCustomUser->forceLoginToBeTheEmail)?"text":"email";  ?>" value="" required >
                                     </div>
                                 </div>
                             </div>
 
+                            <?php
+                            if(empty($advancedCustomUser->forceLoginToBeTheEmail)){
+                            ?>
                             <div class="form-group">
                                 <label class="col-md-4 control-label"><?php echo __("E-mail"); ?></label>
                                 <div class="col-md-8 inputGroupContainer">
@@ -67,7 +70,7 @@ $agreement = YouPHPTubePlugin::loadPluginIfEnabled("SignUpAgreement");
                                     </div>
                                 </div>
                             </div>
-
+                            <?php } ?>
                             <div class="form-group">
                                 <label class="col-md-4 control-label"><?php echo __("New Password"); ?></label>
                                 <div class="col-md-8 inputGroupContainer">

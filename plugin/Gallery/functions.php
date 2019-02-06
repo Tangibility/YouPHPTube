@@ -124,13 +124,13 @@ function createGallerySection($videos, $crc = "", $get = array()) {
         $img_portrait = ($value['rotation'] === "90" || $value['rotation'] === "270") ? "img-portrait" : "";
         $name = User::getNameIdentificationById($value['users_id']);
         // make a row each 6 cols
-        if ($countCols % 6 === 0) {
+        if ($countCols % $obj->screenColsLarge === 0) {
             echo '</div><div class="row aligned-row ">';
         }
 
         $countCols ++;
         ?>
-        <div class="col-lg-2 col-md-4 col-sm-4 col-xs-6 galleryVideo thumbsImage fixPadding" style="z-index: <?php echo $zindex--; ?>; min-height: 175px;">
+        <div class="col-lg-<?php echo 12 / $obj->screenColsLarge; ?> col-md-<?php echo 12 / $obj->screenColsMedium; ?> col-sm-<?php echo 12 / $obj->screenColsSmall; ?> col-xs-<?php echo 12 / $obj->screenColsXSmall; ?> galleryVideo thumbsImage fixPadding" style="z-index: <?php echo $zindex--; ?>; min-height: 175px;">
             <a class="galleryLink" videos_id="<?php echo $value['id']; ?>" href="<?php echo Video::getLink($value['id'], $value['clean_title'], false, $getCN); ?>" title="<?php echo $value['title']; ?>">
                 <?php
                 $images = Video::getImageFromFilename($value['filename'], $value['type']);
@@ -144,7 +144,7 @@ function createGallerySection($videos, $crc = "", $get = array()) {
                     <?php } ?>
                 </div>
                 <span class="duration"><?php echo Video::getCleanDuration($value['duration']); ?></span>
-                <div class="progress" style="height: 3px;">
+                <div class="progress" style="height: 3px; margin-bottom: 2px;">
                     <div class="progress-bar progress-bar-danger" role="progressbar" style="width: <?php echo $value['progress']['percent'] ?>%;" aria-valuenow="<?php echo $value['progress']['percent'] ?>" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
             </a>
@@ -177,12 +177,17 @@ function createGallerySection($videos, $crc = "", $get = array()) {
                     }
                     ?>
                 </div>
-                <div>
-                    <i class="fa fa-eye"></i>
-                    <span itemprop="interactionCount">
-                        <?php echo number_format($value['views_count'], 0); ?> <?php echo __("Views"); ?>
-                    </span>
-                </div>
+
+                <?php
+                if (empty($advancedCustom->doNotDisplayViews)) {
+                    ?>
+                    <div>
+                        <i class="fa fa-eye"></i>
+                        <span itemprop="interactionCount">
+                            <?php echo number_format($value['views_count'], 0); ?> <?php echo __("Views"); ?>
+                        </span>
+                    </div>
+                <?php } ?>
                 <div>
                     <i class="fa fa-clock-o"></i>
                     <?php echo humanTiming(strtotime($value['videoCreation'])), " ", __('ago'); ?>
@@ -204,81 +209,12 @@ function createGallerySection($videos, $crc = "", $get = array()) {
                     </div>
                 <?php }
                 ?>
-                <div class="">
-                    <?php if ((empty($_POST['disableAddTo'])) && (( ($advancedCustom != false) && ($advancedCustom->disableShareAndPlaylist == false)) || ($advancedCustom == false))) { ?>
-                        <a href="#" class="text-primary" style="float:right;" id="addBtn<?php echo $value['id'] . $crc; ?>" data-placement="top" onclick="loadPlayLists('<?php echo $value['id'] . $crc; ?>', '<?php echo $value['id']; ?>');">
-                            <span class="fa fa-plus"></span> <?php echo __("Add to"); ?>
-                        </a>
-                        <div class="webui-popover-content" >
-                            <?php if (User::isLogged()) { ?>
-                                <form role="form">
-                                    <div class="form-group">
-                                        <input class="form-control" id="searchinput<?php echo $value['id'] . $crc; ?>" type="search" placeholder="<?php echo __("Search"); ?>..." />
-                                    </div>
-                                    <div id="searchlist<?php echo $value['id'] . $crc; ?>" class="list-group">
-                                    </div>
-                                </form>
-                                <div>
-                                    <hr>
-                                    <div class="form-group">
-                                        <input id="playListName<?php echo $value['id'] . $crc; ?>" class="form-control" placeholder="<?php echo __("Create a New Play List"); ?>"  >
-                                    </div>
-                                    <div class="form-group">
-                                        <?php echo __("Make it public"); ?>
-                                        <div class="material-switch pull-right">
-                                            <input id="publicPlayList<?php echo $value['id'] . $crc; ?>" name="publicPlayList" type="checkbox" checked="checked"/>
-                                            <label for="publicPlayList" class="label-success"></label>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <button class="btn btn-success btn-block" id="addPlayList<?php echo $value['id'] . $crc; ?>" ><?php echo __("Create a New Play List"); ?></button>
-                                    </div>
-                                </div>
-                            <?php } else { ?>
-                                <h5><?php echo __("Want to watch this again later?"); ?></h5>
-                                <?php echo __("Sign in to add this video to a playlist."); ?>
-                                <a href="<?php echo $global['webSiteRootURL']; ?>user" class="btn btn-primary">
-                                    <span class="fas fa-sign-in-alt"></span>
-                                    <?php echo __("Login"); ?>
-                                </a>
-                            <?php } ?>
-                        </div>
-                        <script>
-                            $(document).ready(function () {
-                                loadPlayLists('<?php echo $value['id'] . $crc; ?>', '<?php echo $value['id']; ?>');
-                                $('#addBtn<?php echo $value['id'] . $crc; ?>').webuiPopover();
-                                $('#addPlayList<?php echo $value['id'] . $crc; ?>').click(function () {
-                                    modal.showPleaseWait();
-                                    $.ajax({
-                                        url: '<?php echo $global['webSiteRootURL']; ?>objects/playlistAddNew.json.php',
-                                        method: 'POST',
-                                        data: {
-                                            'videos_id': <?php echo $value['id']; ?>,
-                                            'status': $('#publicPlayList<?php echo $value['id'] . $crc; ?>').is(":checked") ? "public" : "private",
-                                            'name': $('#playListName<?php echo $value['id'] . $crc; ?>').val()
-                                        },
-                                        success: function (response) {
-                                            if (response.status === "1") {
-                                                playList = [];
-                                                console.log(1);
-                                                reloadPlayLists();
-                                                loadPlayLists('<?php echo $value['id'] . $crc; ?>', '<?php echo $value['id']; ?>');
-                                                //$('#searchlist<?php echo $value['id'] . $crc; ?>').btsListFilter('#searchinput<?php echo $value['id'] . $name; ?>', {itemChild: 'span'});
-                                                $('#playListName<?php echo $value['id'] . $crc; ?>').val("");
-                                                $('#publicPlayList<?php echo $value['id'] . $crc; ?>').prop('checked', true);
-                                            }
-                                            modal.hidePleaseWait();
-                                        }
-                                    });
-                                    return false;
-                                });
-                            });
-                        </script>
-                    <?php } ?>
-                </div>
+                <?php
+                echo YouPHPTubePlugin::getGalleryActionButton($value['id']);
+                ?>
             </div>
             <?php
-            if ($config->getAllow_download()) {
+            if (CustomizeUser::canDownloadVideosFromVideo($value['id'])) {
                 ?>
 
                 <div style="position: relative; overflow: visible; z-index: 3;" class="dropup">

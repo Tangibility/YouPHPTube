@@ -132,14 +132,19 @@ if (typeof gtag !== \"function\") {
 
     function addExternalOptions($id, $value) {
         $eo = unserialize(base64_decode($this->externalOptions));
+        if(!is_array($eo)){
+            $eo = array();
+        }
         $eo[$id] = $value;
         $this->setExternalOptions($eo);
+        return $this->save();
     }
     
     function removeExternalOptions($id) {
         $eo = unserialize(base64_decode($this->externalOptions));
         unset($eo[$id]);
         $this->setExternalOptions($eo);
+        return $this->save();
     }
     
     function setExternalOptions($options) {
@@ -149,6 +154,9 @@ if (typeof gtag !== \"function\") {
 
     function getExternalOption($id) {
         $eo = unserialize(base64_decode($this->externalOptions));
+        if(empty($eo[$id])){
+            return NULL;
+        }
         return $eo[$id];
     }
 
@@ -242,13 +250,13 @@ if (typeof gtag !== \"function\") {
     static function getNameIdentification() {
         global $advancedCustom;
         if (self::isLogged()) {
-            if (!empty(self::getName()) && empty($advancedCustom->doNotIndentifyByName)) {
+            if (!empty(self::getName()) && empty($advancedCustomUser->doNotIndentifyByName)) {
                 return self::getName();
             }
-            if (!empty(self::getMail()) && empty($advancedCustom->doNotIndentifyByEmail)) {
+            if (!empty(self::getMail()) && empty($advancedCustomUser->doNotIndentifyByEmail)) {
                 return self::getMail();
             }
-            if (!empty(self::getUserName()) && empty($advancedCustom->doNotIndentifyByUserName)) {
+            if (!empty(self::getUserName()) && empty($advancedCustomUser->doNotIndentifyByUserName)) {
                 return self::getUserName();
             }
         }
@@ -352,7 +360,7 @@ if (typeof gtag !== \"function\") {
     }
 
     function save($updateUserGroups = false) {
-        global $global, $config, $advancedCustom;
+        global $global, $config, $advancedCustom, $advancedCustomUser;
         if (is_object($config) && $config->currentVersionLowerThen('5.6')) {
             // they dont have analytics code
             return false;
@@ -366,7 +374,7 @@ if (typeof gtag !== \"function\") {
         }
         if (empty($this->canStream)) {
             if (empty($this->id)) { // it is a new user
-                if (empty($advancedCustom->newUsersCanStream)) {
+                if (empty($advancedCustomUser->newUsersCanStream)) {
                     $this->canStream = "0";
                 } else {
                     $this->canStream = "1";
@@ -451,7 +459,7 @@ if (typeof gtag !== \"function\") {
         if ($insert_row) {
             if (empty($this->id)) {
                 $id = $global['mysqli']->insert_id;
-                if (!empty($advancedCustom->unverifiedEmailsCanNOTLogin)) {
+                if (!empty($advancedCustomUser->unverifiedEmailsCanNOTLogin)) {
                     self::sendVerificationLink($id);
                 }
             } else {
@@ -491,11 +499,21 @@ if (typeof gtag !== \"function\") {
         if (User::isAdmin()) {
             return true;
         }
+        
+        if(YouPHPTubePlugin::userCanWatchVideo(User::getId(), $videos_id)){
+            return true;
+        }
+        
         // check if the video is not public 
         $rows = UserGroups::getVideoGroups($videos_id);
 
         if (empty($rows)) {
-            return true; // the video is public
+            // check if any plugin restrict access to this video
+            if(!YouPHPTubePlugin::userCanWatchVideo(User::getId(), $videos_id)){
+                return false;
+            }else{
+                return true; // the video is public
+            }
         }
 
         if (!User::isLogged()) {
@@ -538,34 +556,22 @@ if (typeof gtag !== \"function\") {
     const CAPTCHA_ERROR = 3;
 
     function login($noPass = false, $encodedPass = false) {
-        global $global,$advancedCustom;
+        global $global,$advancedCustom, $advancedCustomUser;
         if ($noPass) {
             $user = $this->find($this->user, false, true);
         } else {
             $user = $this->find($this->user, $this->password, true, $encodedPass);
         }
         
+        if(!self::checkLoginAttempts()){
+            return self::CAPTCHA_ERROR;
+        }
         session_write_close();
         session_start();
-        // check for multiple logins attempts to prevent hacking
-        if(empty($_SESSION['loginAttempts'])){
-            $_SESSION['loginAttempts'] = 0;
-        }
-        if(!empty($advancedCustom->requestCaptchaAfterLoginsAttempts)){
-            $_SESSION['loginAttempts']++;
-            if($_SESSION['loginAttempts']>$advancedCustom->requestCaptchaAfterLoginsAttempts){
-                if(empty($_POST['captcha'])){
-                    return self::CAPTCHA_ERROR;
-                }
-                require_once $global['systemRootPath'] . 'objects/captcha.php';
-                if(!Captcha::validation($_POST['captcha'])){
-                    return self::CAPTCHA_ERROR;
-                }
-            }
-        }
+        
         // check for multiple logins attempts to prevent hacking end
         // if user is not verified
-        if (!empty($user) && empty($user['isAdmin']) && empty($user['emailVerified']) && !empty($advancedCustom->unverifiedEmailsCanNOTLogin)) {
+        if (!empty($user) && empty($user['isAdmin']) && empty($user['emailVerified']) && !empty($advancedCustomUser->unverifiedEmailsCanNOTLogin)) {
             unset($_SESSION['user']);
             self::sendVerificationLink($user['id']);
             return self::USER_NOT_VERIFIED;
@@ -590,14 +596,39 @@ if (typeof gtag !== \"function\") {
     }
     
     static function isCaptchaNeed(){
-        global $advancedCustom;
+        global $advancedCustomUser;
         // check for multiple logins attempts to prevent hacking
-        if(!empty($_SESSION['loginAttempts']) && !empty($advancedCustom->requestCaptchaAfterLoginsAttempts)){
-            if($_SESSION['loginAttempts']>$advancedCustom->requestCaptchaAfterLoginsAttempts){
+        if(!empty($_SESSION['loginAttempts']) && !empty($advancedCustomUser->requestCaptchaAfterLoginsAttempts)){
+            if($_SESSION['loginAttempts']>$advancedCustomUser->requestCaptchaAfterLoginsAttempts){
                 return true;
             }
         }
         return false;
+    }
+    
+    static function checkLoginAttempts(){
+        global $advancedCustomUser, $global;
+        session_write_close();
+        session_start();
+        // check for multiple logins attempts to prevent hacking
+        if(empty($_SESSION['loginAttempts'])){
+            $_SESSION['loginAttempts'] = 0;
+        }
+        if(!empty($advancedCustomUser->requestCaptchaAfterLoginsAttempts)){
+            $_SESSION['loginAttempts']++;
+            session_write_close();
+            if($_SESSION['loginAttempts']>$advancedCustomUser->requestCaptchaAfterLoginsAttempts){
+                if(empty($_POST['captcha'])){
+                    return false;
+                }
+                require_once $global['systemRootPath'] . 'objects/captcha.php';
+                if(!Captcha::validation($_POST['captcha'])){
+                    return false;
+                }
+            }
+        }
+        session_write_close();
+        return true;
     }
     
     static function getCaptchaFormIfNeed() {
@@ -608,18 +639,18 @@ if (typeof gtag !== \"function\") {
         return "";
     }
     
-    static function getCaptchaForm() {
+    static function getCaptchaForm($uid="") {
         global $global;
         return '<div class="input-group">'
-                . '<span class="input-group-addon"><img src="'.$global['webSiteRootURL'].'captcha" id="captcha"></span>
-                    <span class="input-group-addon"><span class="btn btn-xs btn-success" id="btnReloadCapcha"><span class="glyphicon glyphicon-refresh"></span></span></span>
-                    <input name="captcha" placeholder="'.__("Type the code").'" class="form-control" type="text" style="height: 60px;" maxlength="5" id="captchaText">
+                . '<span class="input-group-addon"><img src="'.$global['webSiteRootURL'].'captcha" id="captcha'.$uid.'"></span>
+                    <span class="input-group-addon"><span class="btn btn-xs btn-success" id="btnReloadCapcha'.$uid.'"><span class="glyphicon glyphicon-refresh"></span></span></span>
+                    <input name="captcha" placeholder="'.__("Type the code").'" class="form-control" type="text" style="height: 60px;" maxlength="5" id="captchaText'.$uid.'">
                 </div>
                 <script>
                 $(document).ready(function () {
-                    $("#btnReloadCapcha").click(function () {
-                        $("#captcha").attr("src", "'.$global['webSiteRootURL'].'captcha?" + Math.random());
-                        $("#captchaText").val("");
+                    $("#btnReloadCapcha'.$uid.'").click(function () {
+                        $("#captcha'.$uid.'").attr("src", "'.$global['webSiteRootURL'].'captcha?" + Math.random());
+                        $("#captchaText'.$uid.'").val("");
                     });
                 });
                 </script>';
@@ -1207,11 +1238,16 @@ if (typeof gtag !== \"function\") {
     }
 
     static function sendVerificationLink($users_id) {
-        global $global, $config;
+        global $global;
+        $config = new Configuration();
         $user = new User($users_id);
         $code = urlencode(static::createVerificationCode($users_id));
         require_once $global['systemRootPath'] . 'objects/PHPMailer/PHPMailerAutoload.php';
         //Create a new PHPMailer instance
+        if(!is_object($config)){
+            error_log("sendVerificationLink: config is not a object ".json_encode($config));
+            return false;
+        }
         $contactEmail = $config->getContactEmail();
         $webSiteTitle = $config->getWebSiteTitle();
         $email = $user->getEmail();

@@ -317,19 +317,45 @@ class YouPHPTubePlugin {
         return $str;
     }
 
-    static function getWatchActionButton() {
+    static function getWatchActionButton($videos_id) {
         $plugins = Plugin::getAllEnabled();
         $str = "";
         foreach ($plugins as $value) {
             $p = static::loadPlugin($value['dirName']);
 
             if (is_object($p)) {
-                $str .= $p->getWatchActionButton();
+                $str .= $p->getWatchActionButton($videos_id);
             }
         }
         return $str;
     }
 
+    static function getNetflixActionButton($videos_id) {
+        $plugins = Plugin::getAllEnabled();
+        $str = "";
+        foreach ($plugins as $value) {
+            $p = static::loadPlugin($value['dirName']);
+
+            if (is_object($p)) {
+                $str .= $p->getNetflixActionButton($videos_id);
+            }
+        }
+        return $str;
+    }
+    
+    static function getGalleryActionButton($videos_id) {
+        $plugins = Plugin::getAllEnabled();
+        $str = "";
+        foreach ($plugins as $value) {
+            $p = static::loadPlugin($value['dirName']);
+
+            if (is_object($p)) {
+                $str .= $p->getGalleryActionButton($videos_id);
+            }
+        }
+        return $str;
+    }
+    
     public static function isEnabled($uuid) {
         return !empty(Plugin::getEnabled($uuid));
     }
@@ -422,6 +448,16 @@ class YouPHPTubePlugin {
             }
         }
     }
+    
+    public static function getVideoManagerButton() {
+        $plugins = Plugin::getAllEnabled();
+        foreach ($plugins as $value) {
+            $p = static::loadPlugin($value['dirName']);
+            if (is_object($p)) {
+                $p->getVideoManagerButton();
+            }
+        }
+    }
 
     public static function getLivePanel() {
         $plugins = Plugin::getAllEnabled();
@@ -475,6 +511,20 @@ class YouPHPTubePlugin {
             $p = static::loadPlugin($value['dirName']);
             if (is_object($p)) {
                 $str .= $p->getPlayListButtons($playlist_id);
+            }
+        }
+        return $str;
+    }
+    
+    public static function getMyAccount($users_id = "") {
+        if (empty($users_id))
+            return "";
+        $plugins = Plugin::getAllEnabled();
+        $str = "";
+        foreach ($plugins as $value) {
+            $p = static::loadPlugin($value['dirName']);
+            if (is_object($p)) {
+                $str .= $p->getMyAccount($users_id);
             }
         }
         return $str;
@@ -566,6 +616,19 @@ class YouPHPTubePlugin {
         }
         return $navBarButtons;
     }
+    
+    public static function navBar() {
+        $plugins = Plugin::getAllEnabled();
+        $userOptions = array();
+        $navBarButtons = "";
+        foreach ($plugins as $value) {
+            $p = static::loadPlugin($value['dirName']);
+            if (is_object($p)) {
+                $navBarButtons .= $p->navBar();
+            }
+        }
+        return $navBarButtons;
+    }
 
     /**
      * excecute update function at plugin and 
@@ -611,6 +674,30 @@ class YouPHPTubePlugin {
                 });</script>' ;
         }
         return $btn;
+    }
+    
+    public static function getAllVideosExcludeVideosIDArray(){
+        $plugins = Plugin::getAllEnabled();
+        $array = array();
+        foreach ($plugins as $value) {
+            $p = static::loadPlugin($value['dirName']);
+            if (is_object($p)) {
+                $array = array_merge($array, $p->getAllVideosExcludeVideosIDArray());
+            }
+        }
+        return $array;
+    }
+    
+    public static function userCanWatchVideo($users_id, $videos_id){
+        $plugins = Plugin::getAllEnabled();
+        $resp = true;
+        foreach ($plugins as $value) {
+            $p = static::loadPlugin($value['dirName']);
+            if (is_object($p)) {
+                $resp = $resp && $p->userCanWatchVideo($users_id, $videos_id);
+            }
+        }
+        return $resp;
     }
 
 }

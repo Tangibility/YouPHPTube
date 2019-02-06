@@ -10,9 +10,9 @@ $tagsStr = "";
 foreach ($tags as $value) {
     $tagsStr .= "<span class=\"label label-{$value->type} fix-width\">{$value->text}</span>";
 }
-$json_file = url_get_contents("{$global['webSiteRootURL']}plugin/CustomizeAdvanced/advancedCustom.json.php");
+//$json_file = url_get_contents("{$global['webSiteRootURL']}plugin/CustomizeAdvanced/advancedCustom.json.php");
 // convert the string to a json object
-$advancedCustom = json_decode($json_file);
+//$advancedCustom = json_decode($json_file);
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $_SESSION['language']; ?>">
@@ -25,7 +25,7 @@ $advancedCustom = json_decode($json_file);
         <script src="<?php echo $global['webSiteRootURL']; ?>view/js/Croppie/croppie.min.js" type="text/javascript"></script>
     </head>
 
-    <body>
+    <body class="<?php echo $global['bodyClass']; ?>">
         <?php include $global['systemRootPath'] . 'view/include/navbar.php'; ?>
 
         <div class="container-fluid">
@@ -46,7 +46,7 @@ $advancedCustom = json_decode($json_file);
                                 <ul class="nav nav-tabs">
                                     <li class="active"><a data-toggle="tab" href="#basicInfo" id="aBasicInfo"><?php echo __("Basic Info") ?></a></li>
 
-                                    <?php if (empty($advancedCustom->disablePersonalInfo)) { ?>
+                                    <?php if (empty($advancedCustomUser->disablePersonalInfo)) { ?>
                                         <li><a data-toggle="tab" href="#personalInfo" id="aPersonalInfo"><?php echo __("Personal Info") ?></a></li>
                                     <?php } ?>
                                 </ul>
@@ -58,7 +58,7 @@ $advancedCustom = json_decode($json_file);
                                         ?>
                                     </div>
 
-                                    <?php if (empty($advancedCustom->disablePersonalInfo)) { ?>
+                                    <?php if (empty($advancedCustomUser->disablePersonalInfo)) { ?>
                                         <div id="personalInfo" class="tab-pane fade"  style="padding: 10px 0;">
                                             <?php
                                             include $global['systemRootPath'] . './view/userPersonalInfo.php';

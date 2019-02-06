@@ -29,6 +29,11 @@ if (empty($_POST['user']) || empty($_POST['pass']) || empty($_POST['email']) || 
     $obj->error = __("You must fill all fields");
     die(json_encode($obj));
 }
+
+if(!empty($advancedCustomUser->forceLoginToBeTheEmail)){
+    $_POST['email'] = $_POST['user'];
+}
+
 $user = new User(0);
 $user->setUser($_POST['user']);
 $user->setPassword($_POST['pass']);
@@ -41,7 +46,7 @@ $status=$user->save();
 
 $json_file = url_get_contents("{$global['webSiteRootURL']}plugin/CustomizeAdvanced/advancedCustom.json.php");
 $advancedCustom = json_decode($json_file);
-if($advancedCustom->sendVerificationMailAutomaic && $status!=0)
+if($advancedCustomUser->sendVerificationMailAutomaic && $status!=0)
 {
     url_get_contents("{$global['webSiteRootURL']}objects/userVerifyEmail.php?users_id=$status");
 }

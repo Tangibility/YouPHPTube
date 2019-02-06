@@ -27,7 +27,7 @@ if (!empty($obj->landscapePosters)) {
                         <?php if (!empty($imgGif)) { ?>
                             <img style="position: absolute; top: 0; display: none;" src="<?php echo $global['webSiteRootURL']; ?>view/img/placeholder-image.png"  alt="<?php echo $value['title']; ?>" id="tile__img thumbsGIF<?php echo $value['id']; ?>" class="thumbsGIF img-responsive img carousel-cell-image" data-flickity-lazyload="<?php echo $imgGif; ?>" />
                         <?php } ?>
-                        <div class="progress" style="height: 3px;">
+                        <div class="progress" style="height: 3px; margin-bottom: 2px;">
                             <div class="progress-bar progress-bar-danger" role="progressbar" style="width: <?php echo $value['progress']['percent'] ?>%;" aria-valuenow="<?php echo $value['progress']['percent'] ?>" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                     </div>
@@ -66,7 +66,12 @@ foreach ($videos as $value) {
                     <?php
                 }
                 ?>
-                <span class="label label-default"><i class="fa fa-eye"></i> <?php echo $value['views_count']; ?></span>
+
+                <?php
+                if (empty($advancedCustom->doNotDisplayViews)) {
+                    ?> 
+                    <span class="label label-default"><i class="fa fa-eye"></i> <?php echo $value['views_count']; ?></span>
+                <?php } ?>
                 <span class="label label-success"><i class="fa fa-thumbs-up"></i> <?php echo $value['likes']; ?></span>
                 <span class="label label-success"><a style="color: inherit;" class="tile__cat" cat="<?php echo $value['clean_category']; ?>" href="<?php echo $global['webSiteRootURL'] . "cat/" . $value['clean_category']; ?>"><i class="fa"></i> <?php echo $value['category']; ?></a></span>
 
@@ -77,6 +82,13 @@ foreach ($videos as $value) {
                         <span class="label label-<?php echo $value2->type; ?>"><?php echo $value2->text; ?></span>
                         <?php
                     }
+                }
+                ?>   
+                <?php
+                if (!empty($value['rrating'])) {
+                    include $global['systemRootPath'] . 'view/rrating/rating-' . $value['rrating'] . '.php';
+                }else if($advancedCustom->showNotRatedLabel){
+                    include $global['systemRootPath'] . 'view/rrating/notRated.php';
                 }
                 ?>
             </h4>
@@ -94,89 +106,34 @@ foreach ($videos as $value) {
                     <h4 class="mainInfoText" itemprop="description">
                         <?php echo nl2br(textToLink($value['description'])); ?>
                     </h4>
+                    <?php
+                    if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
+                        echo VideoTags::getLabels($value['id']);
+                    }
+                    ?>
                 </div>
             </div>
             <div class="footerBtn">
-                <a class="btn btn-danger playBtn <?php echo $canWatchPlayButton; ?>" href="<?php echo Video::getLink($value['id'], $value['clean_title']); ?>"><i class="fa fa-play"></i> <?php echo __("Play"); ?></a>
+                <a class="btn btn-danger playBtn <?php echo $canWatchPlayButton; ?>" href="<?php echo YouPHPFlix2::getLinkToVideo($value['id']); ?>">
+                    <i class="fa fa-play"></i> 
+                    <span class="hidden-xs"><?php echo __("Play"); ?></span>
+                </a>
                 <?php
                 if (!empty($value['trailer1'])) {
                     ?>
-                    <a href="#" class="btn btn-warning" onclick="flixFullScreen('<?php echo $value['trailer1']; ?>');return false;">
-                        <span class="fa fa-film"></span> <?php echo __("Trailer"); ?>
+                    <a href="#" class="btn btn-warning" onclick="flixFullScreen('<?php echo parseVideos($value['trailer1'], 1, 0, 0, 0, 1); ?>');return false;">
+                        <span class="fa fa-film"></span> 
+                        <span class="hidden-xs"><?php echo __("Trailer"); ?></span>
                     </a>
                     <?php
                 }
                 ?>
-                <a href="#" class="btn btn-primary" id="addBtn<?php echo $value['id'] . $uid; ?>" data-placement="right" onclick="loadPlayLists('<?php echo $value['id'] . $uid; ?>', '<?php echo $value['id']; ?>');">
-                    <span class="fa fa-plus"></span> <?php echo __("Add to"); ?>
-                </a>
+                <?php
+                echo YouPHPTubePlugin::getNetflixActionButton($value['id']);
+                ?>
             </div>
         </div>
-    </div>
-    <div id="webui-popover-content<?php echo $value['id'] . $uid; ?>" style="display: none;" >
-        <?php if (User::isLogged()) { ?>
-            <form role="form">
-                <div class="form-group">
-                    <input class="form-control" id="searchinput<?php echo $value['id'] . $uid; ?>" type="search" placeholder="<?php echo __("Search"); ?>..." />
-                </div>
-                <div id="searchlist<?php echo $value['id'] . $uid; ?>" class="list-group">
-                </div>
-            </form>
-            <div>
-                <hr>
-                <div class="form-group">
-                    <input id="playListName<?php echo $value['id'] . $uid; ?>" class="form-control" placeholder="<?php echo __("Create a New Play List"); ?>"  >
-                </div>
-                <div class="form-group">
-                    <?php echo __("Make it public"); ?>
-                    <div class="material-switch pull-right">
-                        <input id="publicPlayList<?php echo $value['id'] . $uid; ?>" name="publicPlayList" type="checkbox" checked="checked"/>
-                        <label for="publicPlayList" class="label-success"></label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <button class="btn btn-success btn-block" id="addPlayList<?php echo $value['id'] . $uid; ?>" ><?php echo __("Create a New Play List"); ?></button>
-                </div>
-            </div>
-        <?php } else { ?>
-            <h5><?php echo __("Want to watch this again later?"); ?></h5>
-            <?php echo __("Sign in to add this video to a playlist."); ?>
-            <a href="<?php echo $global['webSiteRootURL']; ?>user" class="btn btn-primary">
-                <span class="fas fa-sign-in-alt"></span>
-                <?php echo __("Login"); ?>
-            </a>
-        <?php } ?>
-    </div>
-    <script>
-        $(document).ready(function () {
-            loadPlayLists('<?php echo $value['id'] . $uid; ?>', '<?php echo $value['id']; ?>');
-            $('#addBtn<?php echo $value['id'] . $uid; ?>').webuiPopover({url: '#webui-popover-content<?php echo $value['id'] . $uid; ?>'});
-            $('#addPlayList<?php echo $value['id'] . $uid; ?>').click(function () {
-                modal.showPleaseWait();
-                $.ajax({
-                    url: '<?php echo $global['webSiteRootURL']; ?>objects/playlistAddNew.json.php',
-                    method: 'POST',
-                    data: {
-                        'videos_id': <?php echo $value['id']; ?>,
-                        'status': $('#publicPlayList<?php echo $value['id'] . $uid; ?>').is(":checked") ? "public" : "private",
-                        'name': $('#playListName<?php echo $value['id'] . $uid; ?>').val()
-                    },
-                    success: function (response) {
-                        if (response.status === "1") {
-                            playList = [];
-                            console.log(1);
-                            reloadPlayLists();
-                            loadPlayLists('<?php echo $value['id'] . $uid; ?>', '<?php echo $value['id']; ?>');
-                            $('#playListName<?php echo $value['id'] . $uid; ?>').val("");
-                            $('#publicPlayList<?php echo $value['id'] . $uid; ?>').prop('checked', true);
-                        }
-                        modal.hidePleaseWait();
-                    }
-                });
-                return false;
-            });
-        });
-    </script>        
+    </div>     
     <?php
 }
 

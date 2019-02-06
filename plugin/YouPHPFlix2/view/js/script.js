@@ -7,6 +7,8 @@ function isFlickityEnabled(selector) {
     var isEnabled = $(selector).hasClass('flickity-enabled');
     if (isEnabled) {
         $('#loading').fadeOut();
+        $('#footerDiv').fadeIn();
+        
         $('.container-fluid').fadeIn('slow', function () {
             $carousel.flickity('resize');
         });
@@ -49,7 +51,15 @@ $(function () {
         });
 
     });
-
+    
+    setTimeout(function () {
+        $('#loading').fadeOut();
+        $('#footerDiv').fadeIn();
+        $('.container-fluid').fadeIn('slow', function () {
+            $carousel.flickity('resize');
+        });
+    }, 2000);
+    
     $carousel = $('.carousel').flickity();
     isFlickityEnabled('.carousel');
 
