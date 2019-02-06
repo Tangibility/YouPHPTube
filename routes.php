@@ -341,5 +341,10 @@ SimpleRouter::post($basePath.__("login"), function() {
 SimpleRouter::get($basePath.__("login"), function() {
     require_once "objects/login.json.php"; exit;
 });
-
+SimpleRouter::get($basePath."trending", function() {
+    require_once "view/trending.php"; exit;
+});
+SimpleRouter::get($basePath."tagz", function() {
+    require_once "view/?tags_id=$1"; exit;
+});
 ?>
