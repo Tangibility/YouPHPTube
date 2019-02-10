@@ -13,9 +13,9 @@ if (!empty($obj->landscapePosters)) {
         $img = $images->thumbsJpg;
         $poster = $images->poster;
         $cssClass = "";
-        if (!empty($images->posterPortrait)) {
+        if (!empty($images->posterPortraitThumbs)) {
             $imgGif = $images->gifPortrait;
-            $img = $images->posterPortrait;
+            $img = $images->posterPortraitThumbs;
             $cssClass = "posterPortrait";
         }
         ?>
@@ -47,11 +47,11 @@ foreach ($videos as $value) {
     $img = $images->thumbsJpg;
     $poster = $images->poster;
     $canWatchPlayButton = "";
-    if (User::canWatchVideo($value['id'])) {
+    if (User::canWatchVideoWithAds($value['id'])) {
         $canWatchPlayButton = "canWatchPlayButton";
     }
     ?>
-    <div class="poster" id="poster<?php echo $value['id'] . $uid; ?>" style="display: none; background-image: url(<?php echo $poster; ?>);">
+    <div class="poster" id="poster<?php echo $value['id'] . $uid; ?>" poster="<?php echo $poster; ?>" style="display: none; background-image: url(<?php echo $global['webSiteRootURL']; ?>plugin/YouPHPFlix2/view/img/loading.gif);">
         <div class="posterDetails " style="
              background: -webkit-linear-gradient(left, rgba(<?php echo $obj->backgroundRGB; ?>,1) 40%, rgba(<?php echo $obj->backgroundRGB; ?>,0) 100%);
              background: -o-linear-gradient(right, rgba(<?php echo $obj->backgroundRGB; ?>,1) 40%, rgba(<?php echo $obj->backgroundRGB; ?>,0) 100%);
@@ -94,10 +94,12 @@ foreach ($videos as $value) {
             </h4>
             <div class="row">
                 <?php
-                if (!empty($images->posterPortrait)) {
+                if (!empty($images->posterPortraitThumbs)) {
                     ?>
                     <div class="col-md-2 col-sm-3 col-xs-4">
-                        <img alt="<?php echo $value['title']; ?>" class="img img-responsive posterPortrait" src="<?php echo $images->posterPortrait; ?>" />
+                        <center>
+                            <img alt="<?php echo $value['title']; ?>" class="img img-responsive posterPortrait" src="<?php echo $images->posterPortraitThumbs; ?>" style="min-width: 86px;" />
+                        </center>
                     </div>
                     <?php
                 }
