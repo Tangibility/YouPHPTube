@@ -47,6 +47,9 @@ $video = Video::getVideo("", "viewable", false, false, true, true);
 if (empty($video)) {
     $video = Video::getVideo("", "viewable", false, false, false, true);
 }
+if(empty($video)){
+    $video = YouPHPTubePlugin::getVideo();
+}
 // add this because if you change the video category the video was not loading anymore
 $_GET['catName'] = $catName;
 
@@ -54,9 +57,9 @@ $_GET['isMediaPlaySite'] = $video['id'];
 $obj = new Video("", "", $video['id']);
 
 /*
-if (empty($_SESSION['type'])) {
-    $_SESSION['type'] = $video['type'];
-}
+  if (empty($_SESSION['type'])) {
+  $_SESSION['type'] = $video['type'];
+  }
  * 
  */
 // $resp = $obj->addView();
@@ -207,10 +210,10 @@ YouPHPTubePlugin::getModeYouTube($v['id']);
         <meta property="duration" content="<?php echo Video::getItemDurationSeconds($video['duration']); ?>"  />
     </head>
 
-    <body>
+    <body class="<?php echo $global['bodyClass']; ?>">
         <?php include $global['systemRootPath'] . 'view/include/navbar.php'; ?>
         <?php
-        if (!empty($advancedCustom->showChannelBannerOnModeYoutube)) {
+        if (!empty($advancedCustomUser->showChannelBannerOnModeYoutube)) {
             ?>
             <div class="container" style="margin-bottom: 10px;">
                 <img src="<?php echo User::getBackground($video['users_id']); ?>" class="img img-responsive" />
@@ -264,6 +267,7 @@ YouPHPTubePlugin::getModeYouTube($v['id']);
                                     <meta itemprop="embedURL" content="<?php echo Video::getLink($video['id'], $video['clean_title'], true); ?>" />
                                     <meta itemprop="uploadDate" content="<?php echo $video['created']; ?>" />
                                     <meta itemprop="description" content="<?php echo str_replace('"', '', $video['title']); ?> - <?php echo htmlentities($video['description']); ?>" />
+
                                 </div>
                                 <div class="col-xs-8 col-sm-8 col-md-8">
                                     <h1 itemprop="name">
@@ -293,135 +297,41 @@ YouPHPTubePlugin::getModeYouTube($v['id']);
                                     <div class="col-xs-12 col-sm-12 col-md-12">
                                         <?php echo $video['creator']; ?>
                                     </div>
-                                    <span class="watch-view-count pull-right text-muted" itemprop="interactionCount"><span class="view-count<?php echo $video['id']; ?>"><?php echo number_format($video['views_count'], 0); ?></span> <?php echo __("Views"); ?></span>
+
+                                    <?php
+                                    if (empty($advancedCustom->doNotDisplayViews)) {
+                                        ?> 
+                                        <span class="watch-view-count pull-right text-muted" itemprop="interactionCount"><span class="view-count<?php echo $video['id']; ?>"><?php echo number_format($video['views_count'], 0); ?></span> <?php echo __("Views"); ?></span>
+                                        <?php
+                                    }
+                                    ?>
+                                    <?php
+                                    if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
+                                        echo VideoTags::getLabels($video['id']);
+                                    }
+                                    ?>
                                 </div>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-12 watch8-action-buttons text-muted">
-                                    <?php if ((($advancedCustom != false) && ($advancedCustom->disableShareAndPlaylist == false)) || ($advancedCustom == false)) { ?>
-                                        <button class="btn btn-default no-outline" id="addBtn" data-placement="bottom">
-                                            <span class="fa fa-plus"></span> <?php echo __("Add to"); ?>
-                                        </button>
-                                        <div class="webui-popover-content">
-                                            <?php if (User::isLogged()) { ?>
-                                                <form role="form">
-                                                    <div class="form-group">
-                                                        <input class="form-control" id="searchinput" type="search" placeholder="Search..." />
-                                                    </div>
-                                                    <div id="searchlist" class="list-group">
-                                                    </div>
-                                                </form>
-                                                <div>
-                                                    <hr>
-                                                    <div class="form-group">
-                                                        <input id="playListName" class="form-control" placeholder="<?php echo __("Create a New Play List"); ?>"  >
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <?php echo __("Make it public"); ?>
-                                                        <div class="material-switch pull-right">
-                                                            <input id="publicPlayList" name="publicPlayList" type="checkbox" checked="checked"/>
-                                                            <label for="publicPlayList" class="label-success"></label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <button class="btn btn-success btn-block" id="addPlayList" ><?php echo __("Create a New Play List"); ?></button>
-                                                    </div>
-                                                </div>
-                                            <?php } else { ?>
-                                                <h5>Want to watch this again later?</h5>
+                                    <?php if (empty($advancedCustom->disableShareAndPlaylist)) { ?>
+                                        <?php if (CustomizeUser::canShareVideosFromVideo($video['id'])) { ?>
+                                            <a href="#" class="btn btn-default no-outline" id="shareBtn">
+                                                <span class="fa fa-share"></span> <?php echo __("Share"); ?>
+                                            </a>
+                                            <?php
+                                        }
 
-                                                Sign in to add this video to a playlist.
-
-                                                <a href="<?php echo $global['webSiteRootURL']; ?>user" class="btn btn-primary">
-                                                    <span class="glyphicon glyphicon-log-in"></span>
-                                                    <?php echo __("Login"); ?>
-                                                </a>
-                                            <?php } ?>
-                                        </div>
-                                        <script>
-                                            function loadPlayLists() {
-                                                $.ajax({
-                                                    url: '<?php echo $global['webSiteRootURL']; ?>objects/playlists.json.php',
-                                                    success: function (response) {
-                                                        $('#searchlist').html('');
-                                                        for (var i in response) {
-                                                            if (!response[i].id) {
-                                                                continue;
-                                                            }
-                                                            var icon = "lock"
-                                                            if (response[i].status == "public") {
-                                                                icon = "globe"
-                                                            }
-
-                                                            var checked = "";
-                                                            for (var x in response[i].videos) {
-                                                                if (
-                                                                        typeof (response[i].videos[x]) === 'object'
-                                                                        && response[i].videos[x].videos_id ==<?php echo $video['id']; ?>) {
-                                                                    checked = "checked";
-                                                                }
-                                                            }
-
-                                                            $("#searchlist").append('<a class="list-group-item"><i class="fa fa-' + icon + '"></i> <span>'
-                                                                    + response[i].name + '</span><div class="material-switch pull-right"><input id="someSwitchOptionDefault'
-                                                                    + response[i].id + '" name="someSwitchOption' + response[i].id + '" class="playListsIds" type="checkbox" value="'
-                                                                    + response[i].id + '" ' + checked + '/><label for="someSwitchOptionDefault'
-                                                                    + response[i].id + '" class="label-success"></label></div></a>');
-                                                        }
-                                                        $('#searchlist').btsListFilter('#searchinput', {itemChild: 'span'});
-                                                        $('.playListsIds').change(function () {
-                                                            modal.showPleaseWait();
-                                                            $.ajax({
-                                                                url: '<?php echo $global['webSiteRootURL']; ?>objects/playListAddVideo.json.php',
-                                                                method: 'POST',
-                                                                data: {
-                                                                    'videos_id': <?php echo $video['id']; ?>,
-                                                                    'add': $(this).is(":checked"),
-                                                                    'playlists_id': $(this).val()
-                                                                },
-                                                                success: function (response) {
-                                                                    modal.hidePleaseWait();
-                                                                }
-                                                            });
-                                                            return false;
-                                                        });
-                                                    }
-                                                });
-                                            }
-                                            $(document).ready(function () {
-                                                loadPlayLists();
-                                                $('#addBtn').webuiPopover();
-                                                $('#addPlayList').click(function () {
-                                                    modal.showPleaseWait();
-                                                    $.ajax({
-                                                        url: '<?php echo $global['webSiteRootURL']; ?>objects/playlistAddNew.json.php',
-                                                        method: 'POST',
-                                                        data: {
-                                                            'videos_id': <?php echo $video['id']; ?>,
-                                                            'status': $('#publicPlayList').is(":checked") ? "public" : "private",
-                                                            'name': $('#playListName').val()
-                                                        },
-                                                        success: function (response) {
-                                                            if (response.status * 1 > 0) {
-                                                                // update list
-                                                                loadPlayLists();
-                                                                $('#searchlist').btsListFilter('#searchinput', {itemChild: 'span'});
-                                                                $('#playListName').val("");
-                                                                $('#publicPlayList').prop('checked', true);
-                                                            }
-                                                            modal.hidePleaseWait();
-                                                        }
-                                                    });
-                                                    return false;
-                                                });
-
-                                            });
-                                        </script>
-                                        <a href="#" class="btn btn-default no-outline" id="shareBtn">
-                                            <span class="fa fa-share"></span> <?php echo __("Share"); ?>
-                                        </a>
-                                    <?php } echo YouPHPTubePlugin::getWatchActionButton(); ?>
+                                        if (CustomizeUser::canDownloadVideosFromVideo($video['id'])) {
+                                            ?>
+                                            <a href="#" class="btn btn-default no-outline" id="downloadBtn">
+                                                <span class="fa fa-download"></span> <?php echo __("Download"); ?>
+                                            </a>
+                                            <?php
+                                        }
+                                        ?>
+                                    <?php } echo YouPHPTubePlugin::getWatchActionButton($video['id']); ?>
                                     <a href="#" class="btn btn-default no-outline pull-right <?php echo ($video['myVote'] == - 1) ? "myVote" : "" ?>" id="dislikeBtn" <?php if (!User::isLogged()) { ?> data-toggle="tooltip" title="<?php echo __("DonÂ´t like this video? Sign in to make your opinion count."); ?>" <?php } ?>>
                                         <span class="fa fa-thumbs-down"></span> <small><?php echo $video['dislikes']; ?></small>
                                     </a>
@@ -461,8 +371,42 @@ YouPHPTubePlugin::getModeYouTube($v['id']);
                                 </div>
                             </div>
                         </div>
-                        <?php if ((($advancedCustom != false) && ($advancedCustom->disableShareAndPlaylist == false)) || ($advancedCustom == false)) { ?>
-                            <div class="row bgWhite list-group-item" id="shareDiv">
+
+                        <?php if (CustomizeUser::canDownloadVideosFromVideo($video['id'])) { ?>
+                            <div class="row bgWhite list-group-item menusDiv" id="downloadDiv">
+                                <div class="tabbable-panel">
+                                    <div class="list-group">
+                                        <?php
+                                        $files = getVideosURL($video['filename']);
+                                        foreach ($files as $key => $theLink) {
+                                            if (empty($advancedCustom->showImageDownloadOption)) {
+                                                if ($key == "jpg" || $key == "gif") {
+                                                    continue;
+                                                }
+                                            }
+                                            ?>
+                                            <a href="<?php echo $theLink['url']; ?>?download=1&title=<?php echo urlencode($video['title'] . "_{$key}_.mp4"); ?>" class="list-group-item list-group-item-action" target="_blank">
+                                                <i class="fas fa-download"></i> <?php echo $key; ?>
+                                            </a>
+                                            <?php
+                                        }
+                                        ?>
+                                    </div>
+                                </div>
+                            </div>
+                            <script>
+                                $(document).ready(function () {
+                                    $("#downloadDiv").slideUp();
+                                    $("#downloadBtn").click(function () {
+                                        $(".menusDiv").not("#downloadDiv").slideUp();
+                                        $("#downloadDiv").slideToggle();
+                                        return false;
+                                    });
+                                });
+                            </script>
+                        <?php } ?>
+                        <?php if (CustomizeUser::canShareVideosFromVideo($video['id'])) { ?>
+                            <div class="row bgWhite list-group-item menusDiv" id="shareDiv">
                                 <div class="tabbable-panel">
                                     <div class="tabbable-line text-muted">
                                         <ul class="nav nav-tabs">
@@ -511,9 +455,9 @@ YouPHPTubePlugin::getModeYouTube($v['id']);
                                                 <h4><span class="glyphicon glyphicon-share"></span> <?php echo __("Share Video"); ?>:</h4>
                                                 <textarea class="form-control" style="min-width: 100%" rows="5" id="textAreaEmbed"><?php
                                                     if ($video['type'] == 'video' || $video['type'] == 'embed') {
-                                                        $code = '<iframe width="640" height="480" style="max-width: 100%;max-height: 100%;" src="' . Video::getLink($video['id'], $video['clean_title'], true) . '" frameborder="0" allowfullscreen="allowfullscreen" allow="autoplay"></iframe>';
+                                                        $code = '<iframe width="640" height="360" style="max-width: 100%;max-height: 100%; border:none;" src="' . Video::getLink($video['id'], $video['clean_title'], true) . '" frameborder="0" allowfullscreen="allowfullscreen" allow="autoplay" scrolling="no">iFrame is not supported!</iframe>';
                                                     } else {
-                                                        $code = '<iframe width="350" height="40" style="max-width: 100%;max-height: 100%;" src="' . Video::getLink($video['id'], $video['clean_title'], true) . '" frameborder="0" allowfullscreen="allowfullscreen" allow="autoplay"></iframe>';
+                                                        $code = '<iframe width="350" height="40" style="max-width: 100%;max-height: 100%; border:none;" src="' . Video::getLink($video['id'], $video['clean_title'], true) . '" frameborder="0" allowfullscreen="allowfullscreen" allow="autoplay" scrolling="no">iFrame is not supported!</iframe>';
                                                     }
                                                     echo htmlentities($code);
                                                     ?>
@@ -629,6 +573,18 @@ YouPHPTubePlugin::getModeYouTube($v['id']);
                                 <div class="col-xs-12 col-sm-12 col-lg-12">
                                     <div class="col-xs-4 col-sm-2 col-lg-2 text-right"><strong><?php echo __("Category"); ?>:</strong></div>
                                     <div class="col-xs-8 col-sm-10 col-lg-10"><a class="btn btn-xs btn-default"  href="<?php echo $global['webSiteRootURL']; ?>cat/<?php echo $video['clean_category']; ?>"><span class="<?php echo $video['iconClass']; ?>"></span> <?php echo $video['category']; ?></a></div>
+                                    <?php
+                                    if(!empty($video['rrating'])){
+                                    ?>
+                                        <div class="col-xs-4 col-sm-2 col-lg-2 text-right"><strong><?php echo __("Rating"); ?>:</strong></div>
+                                        <div class="col-xs-8 col-sm-10 col-lg-10">
+                                            <?php
+                                                include $global['systemRootPath'].'view/rrating/rating-'.$video['rrating'].'.php';
+                                            ?>
+                                        </div>
+                                    <?php
+                                    }
+                                    ?>
                                     <div class="col-xs-4 col-sm-2 col-lg-2 text-right"><strong><?php echo __("Description"); ?>:</strong></div>
                                     <div class="col-xs-8 col-sm-10 col-lg-10" itemprop="description"><?php echo nl2br(textToLink(htmlentities($video['description']))); ?></div>
                                 </div>
@@ -639,6 +595,7 @@ YouPHPTubePlugin::getModeYouTube($v['id']);
                             $(document).ready(function () {
                                 $("#shareDiv").slideUp();
                                 $("#shareBtn").click(function () {
+                                    $(".menusDiv").not("#shareDiv").slideUp();
                                     $("#shareDiv").slideToggle();
                                     return false;
                                 });
@@ -655,7 +612,8 @@ YouPHPTubePlugin::getModeYouTube($v['id']);
                             <div class="col-lg-12 col-sm-12 col-xs-12">
                                 <?php echo $config->getAdsense(); ?>
                             </div>
-                        <?php }
+                            <?php
+                        }
                         if (!empty($playlist_id)) {
                             include $global['systemRootPath'] . 'view/include/playlist.php';
                             ?>
@@ -732,10 +690,17 @@ YouPHPTubePlugin::getModeYouTube($v['id']);
                                                 <span class="<?php echo $autoPlayVideo['iconClass']; ?>"></span>
                                                 <?php echo $autoPlayVideo['category']; ?>
                                             </div>
-                                            <div>
-                                                <strong class=""><?php echo number_format($autoPlayVideo['views_count'], 0); ?></strong>
-                                                <?php echo __("Views"); ?>
-                                            </div>
+
+                                            <?php
+                                            if (empty($advancedCustom->doNotDisplayViews)) {
+                                                ?> 
+                                                <div>
+                                                    <strong class=""><?php echo number_format($autoPlayVideo['views_count'], 0); ?></strong>
+                                                    <?php echo __("Views"); ?>
+                                                </div>
+                                                <?php
+                                            }
+                                            ?>
                                             <div><?php echo $autoPlayVideo['creator']; ?></div>
                                         </div>
                                         <div class="row">
@@ -754,7 +719,7 @@ YouPHPTubePlugin::getModeYouTube($v['id']);
                                     </div>
                                 </a>
                             </div>
-                        <?php }  ?>
+                        <?php } ?>
                         <div class="col-lg-12 col-sm-12 col-xs-12 extraVideos nopadding"></div>
                         <!-- videos List -->
                         <div id="videosList">
@@ -808,9 +773,9 @@ YouPHPTubePlugin::getModeYouTube($v['id']);
         </div>
         <script src="<?php echo $global['webSiteRootURL']; ?>view/js/jquery-ui/jquery-ui.min.js" type="text/javascript"></script>
         <script>
-                            /*** Handle jQuery plugin naming conflict between jQuery UI and Bootstrap ***/
-                            $.widget.bridge('uibutton', $.ui.button);
-                            $.widget.bridge('uitooltip', $.ui.tooltip);
+                        /*** Handle jQuery plugin naming conflict between jQuery UI and Bootstrap ***/
+                        $.widget.bridge('uibutton', $.ui.button);
+                        $.widget.bridge('uitooltip', $.ui.tooltip);
         </script>
         <?php
         $videoJSArray = array("view/js/video.js/video.js");
@@ -832,21 +797,21 @@ YouPHPTubePlugin::getModeYouTube($v['id']);
         <script src="<?php echo $jsURL; ?>" type="text/javascript"></script>
         <?php
         include $global['systemRootPath'] . 'view/include/footer.php';
-        $videoJSArray = array("view/js/videojs-rotatezoom/videojs.zoomrotate.js",
+        $videoJSArray = array(
             "view/js/videojs-persistvolume/videojs.persistvolume.js",
             "view/js/BootstrapMenu.min.js");
         $jsURL = combineFiles($videoJSArray, "js");
         ?>
         <script src="<?php echo $jsURL; ?>" type="text/javascript"></script>
         <script>
-                            var fading = false;
-                            var autoPlaySources = <?php echo json_encode($autoPlaySources); ?>;
-                            var autoPlayURL = '<?php echo $autoPlayURL; ?>';
-                            var autoPlayPoster = '<?php echo $autoPlayPoster; ?>';
-                            var autoPlayThumbsSprit = '<?php echo $autoPlayThumbsSprit; ?>';
+                        var fading = false;
+                        var autoPlaySources = <?php echo json_encode($autoPlaySources); ?>;
+                        var autoPlayURL = '<?php echo $autoPlayURL; ?>';
+                        var autoPlayPoster = '<?php echo $autoPlayPoster; ?>';
+                        var autoPlayThumbsSprit = '<?php echo $autoPlayThumbsSprit; ?>';
 
-                            $(document).ready(function () {
-                            });
+                        $(document).ready(function () {
+                        });
         </script>
     </body>
 </html>

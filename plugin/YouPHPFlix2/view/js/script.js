@@ -7,6 +7,8 @@ function isFlickityEnabled(selector) {
     var isEnabled = $(selector).hasClass('flickity-enabled');
     if (isEnabled) {
         $('#loading').fadeOut();
+        $('#footerDiv').fadeIn();
+        
         $('.container-fluid').fadeIn('slow', function () {
             $carousel.flickity('resize');
         });
@@ -40,7 +42,7 @@ $(function () {
         $(".thumbsImage").removeClass('active');
 
         $('.poster').slideUp();
-        
+        $('#poster'+crc).css('background-image', 'url(' + $('#poster'+crc).attr('poster') + ')');
         $('#poster'+crc).slideDown('slow', function () {
             var top = row.offset().top;
             $('html, body').animate({
@@ -49,7 +51,15 @@ $(function () {
         });
 
     });
-
+    
+    setTimeout(function () {
+        $('#loading').fadeOut();
+        $('#footerDiv').fadeIn();
+        $('.container-fluid').fadeIn('slow', function () {
+            $carousel.flickity('resize');
+        });
+    }, 2000);
+    
     $carousel = $('.carousel').flickity();
     isFlickityEnabled('.carousel');
 

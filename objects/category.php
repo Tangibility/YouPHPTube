@@ -360,11 +360,11 @@ class Category {
     }
 
     static function canCreateCategory() {
-        global $advancedCustom;
+        global $advancedCustomUser;
         if (User::isAdmin()) {
             return true;
         }
-        if ($advancedCustom->usersCanCreateNewCategories && User::canUpload()) {
+        if ($advancedCustomUser && $advancedCustomUser->usersCanCreateNewCategories && User::canUpload()) {
             return true;
         }
         return false;
@@ -487,4 +487,18 @@ class Category {
         $this->iconClass = $iconClass;
     }
 
+    function getName() {
+        return $this->name;
+    }
+
+    function getClean_name() {
+        return $this->clean_name;
+    }
+
+    function getDescription() {
+        return $this->description;
+    }
+
+
+    
 }

@@ -362,7 +362,7 @@ if (User::isAdmin()) {
                                         <div class="form-group">
                                             <label class="col-md-2"><?php echo __("Encoder URL"); ?></label>
                                             <div class="col-md-10">
-                                                <input id="encoder_url" aria-describedby="encoder_urlHelp" class="form-control"  type="url" value="<?php echo $config->getEncoderURL(); ?>" >
+                                                <input id="encoder_url" aria-describedby="encoder_urlHelp" class="form-control"  type="url" value="<?php echo $config->_getEncoderURL(); ?>" >
                                                 <small id="encoder_urlHelp" class="form-text text-muted">
                                                     <?php echo __("You need to set up an encoder server"); ?><br>
                                                     <?php echo __("You can use our public encoder on"); ?>: https://encoder.youphptube.com/ or
@@ -587,7 +587,7 @@ if (User::isAdmin()) {
                     data: {
                         captcha: $('#captchaText').val(),
                         first_name: "Your Site test",
-                        email: "teste@teste.com",
+                        email: "<?php echo $config->getContactEmail(); ?>",
                         website: "www.youphptube.com",
                         comment: "Teste of comment"
                     },

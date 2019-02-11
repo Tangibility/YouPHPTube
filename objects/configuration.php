@@ -87,7 +87,7 @@ class Configuration {
                 . "authCanUploadVideos = '{$this->authCanUploadVideos}',"
                 . "authCanViewChart = '{$this->authCanViewChart}',"
                 . "authCanComment = '{$this->authCanComment}',"
-                . "encoderURL = '{$global['mysqli']->real_escape_string($this->getEncoderURL())}',"
+                . "encoderURL = '{$global['mysqli']->real_escape_string($this->_getEncoderURL())}',"
                 . "head = '{$global['mysqli']->real_escape_string($this->getHead())}',"
                 . "adsense = '{$global['mysqli']->real_escape_string($this->getAdsense())}',"
                 . "mode = '{$this->getMode()}',"
@@ -97,7 +97,7 @@ class Configuration {
                 . "disable_youtubeupload = '{$this->getDisable_youtubeupload()}',"
                 . "allow_download = '{$this->getAllow_download()}',"
                 . "session_timeout = '{$this->getSession_timeout()}',"
-                . "autoplay = '{$global['mysqli']->real_escape_string($this->getAutoplay())}',"
+                . "autoplay = '{$this->getAutoplay()}',"
                 . "theme = '{$global['mysqli']->real_escape_string($this->getTheme())}',"
                 . "smtp = '{$this->getSmtp()}',"
                 . "smtpAuth = '{$this->getSmtpAuth()}',"
@@ -277,7 +277,7 @@ class Configuration {
     }
 
     function getAutoplay() {
-        return $this->autoplay;
+        return intval($this->autoplay);
     }
 
     function setAutoplay($autoplay) {
@@ -382,6 +382,9 @@ require_once \$global['systemRootPath'].'objects/include_config.php';
         $this->smtpPort = intval($smtpPort);
     }
 
+    function _getEncoderURL() {
+        return $this->encoderURL;
+    }
     function getEncoderURL() {
         global $advancedCustom;
         if(!empty($advancedCustom->useEncoderNetworkRecomendation) && !empty($advancedCustom->encoderNetwork)){

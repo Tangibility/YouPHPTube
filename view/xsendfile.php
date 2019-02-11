@@ -37,8 +37,8 @@ if (file_exists($path)) {
         header('Pragma: public');
     }
     YouPHPTubePlugin::xsendfilePreVideoPlay();
-    $advancedCustom = YouPHPTubePlugin::getObjectDataIfEnabled("CustomizeAdvanced");
     if (empty($advancedCustom->doNotUseXsendFile)) {
+        //error_log("X-Sendfile: {$path}");
         header("X-Sendfile: {$path}");
     }
     if (empty($_GET['download'])) {

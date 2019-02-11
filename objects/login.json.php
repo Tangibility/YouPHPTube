@@ -48,6 +48,9 @@ if (!empty($_GET['type'])) {
     }
     
     $scope = 'email';
+    if($_GET['type']==="Yahoo"){
+        $scope = 'sdpp-w';
+    }
     if($_GET['type']==='LinkedIn'){
         $scope = array('r_emailaddress');
     }
@@ -138,7 +141,7 @@ $object->isLogged = User::isLogged();
 $object->isAdmin = User::isAdmin();
 $object->canUpload = User::canUpload();
 $object->canComment = User::canComment();
-if (empty($advancedCustom->userCanNotChangeCategory) || User::isAdmin()) {
+if (empty($advancedCustomUser->userCanNotChangeCategory) || User::isAdmin()) {
     $object->categories = Category::getAllCategories(true);
 }else{
     $object->categories = array();
@@ -158,6 +161,11 @@ if($object->isLogged){
         $object->streamer = json_decode(url_get_contents($global['webSiteRootURL']."objects/status.json.php"));
         $object->plugin = $p->getDataObject();
         $object->encoder = $config->getEncoderURL();
+    }
+    
+    $p = YouPHPTubePlugin::loadPluginIfEnabled("VideoHLS");
+    if(!empty($p)){
+        $object->videoHLS = true;
     }
 }
 
