@@ -30,11 +30,11 @@
             if (!empty($advancedCustom->disableYoutubePlayerIntegration)) {
                 $disableYoutubeIntegration = true;
             }
-            $_GET['isEmbedded'] = "";
-            if (((strpos($video['videoLink'], "youtube.com") == false) && (strpos($video['videoLink'], "vimeo.com") == false)) || ($disableYoutubeIntegration)) {
+            $_GET['isEmbedded'] = ""; 
+            if (((strpos($video['videoLink'], "youtu.be") == false) && (strpos($video['videoLink'], "youtube.com") == false) && (strpos($video['videoLink'], "vimeo.com") == false)) || ($disableYoutubeIntegration)) {
                 $_GET['isEmbedded'] = "e";
                 ?>
-                <video playsinline id="mainVideo" style="display: none; height: 0;width: 0;" ></video>
+                <video playsinline webkit-playsinline="webkit-playsinline"  id="mainVideo" style="display: none; height: 0;width: 0;" ></video>
                 <div id="main-video" class="embed-responsive embed-responsive-16by9">
                     <iframe class="embed-responsive-item" scrolling="no" allowfullscreen="true" src="<?php
                     echo parseVideos($video['videoLink']);
@@ -52,7 +52,7 @@
                 <?php
             } else {
                 // youtube!
-                if ((strpos($video['videoLink'], "youtube.com") != false)) {
+                if ((strpos($video['videoLink'], "youtube.com") != false) || (strpos($video['videoLink'], "youtu.be") != false)) {
                     $_GET['isEmbedded'] = "y";
                 } else if ((strpos($video['videoLink'], "vimeo.com") != false)) {
                     $_GET['isEmbedded'] = "v";
@@ -60,7 +60,7 @@
                 $_GET['isMediaPlaySite'] = $video['id'];
                 ?>      
                 <div id="main-video" class="embed-responsive embed-responsive-16by9">
-                    <video playsinline id="mainVideo" class="embed-responsive-item video-js vjs-default-skin <?php echo $vjsClass; ?> vjs-big-play-centered" controls <?php
+                    <video playsinline webkit-playsinline="webkit-playsinline"  id="mainVideo" class="embed-responsive-item video-js vjs-default-skin <?php echo $vjsClass; ?> vjs-big-play-centered" controls <?php
                     if ($config->getAutoplay()) {
                         echo " autoplay ";
                     }
@@ -135,8 +135,11 @@
                                     addView(<?php echo $video['id']; ?>, time);
                                 }
                             });
-
-
+                            
+                            player.on('ended', function () {
+                                var time = Math.round(this.currentTime());
+                                addView(<?php echo $video['id']; ?>, time);
+                            });
 
                         });
                     </script>

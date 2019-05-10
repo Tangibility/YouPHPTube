@@ -1,9 +1,12 @@
 <?php
+global $advancedCustom;
 $uid = uniqid();
 $landscape = "rowPortrait";
 if (!empty($obj->landscapePosters)) {
     $landscape = "landscapeTile";
 }
+$get = $_GET;
+$post = $_POST;
 ?>
 <div class="carousel <?php echo $landscape; ?>" data-flickity='<?php echo json_encode($dataFlickirty) ?>'>
     <?php
@@ -13,7 +16,7 @@ if (!empty($obj->landscapePosters)) {
         $img = $images->thumbsJpg;
         $poster = $images->poster;
         $cssClass = "";
-        if (!empty($images->posterPortraitThumbs)) {
+        if (empty($obj->landscapePosters) && !empty($images->posterPortraitThumbs)) {
             $imgGif = $images->gifPortrait;
             $img = $images->posterPortraitThumbs;
             $cssClass = "posterPortrait";
@@ -27,9 +30,27 @@ if (!empty($obj->landscapePosters)) {
                         <?php if (!empty($imgGif)) { ?>
                             <img style="position: absolute; top: 0; display: none;" src="<?php echo $global['webSiteRootURL']; ?>view/img/placeholder-image.png"  alt="<?php echo $value['title']; ?>" id="tile__img thumbsGIF<?php echo $value['id']; ?>" class="thumbsGIF img-responsive img carousel-cell-image" data-flickity-lazyload="<?php echo $imgGif; ?>" />
                         <?php } ?>
+                        <?php
+                        if ($advancedCustom->paidOnlyFreeLabel && $obj->paidOnlyLabelOverPoster) {
+                            foreach ($value['tags'] as $value2) {
+                                if (!empty($value2->label) && $value2->label === __("Paid Content")) {
+                                    ?><span class="paidOnlyLabel label label-<?php echo $value2->type; ?>"><?php echo $value2->text; ?></span><?php
+                                }
+                            }
+                        }
+                        ?>  
                         <div class="progress" style="height: 3px; margin-bottom: 2px;">
                             <div class="progress-bar progress-bar-danger" role="progressbar" style="width: <?php echo $value['progress']['percent'] ?>%;" aria-valuenow="<?php echo $value['progress']['percent'] ?>" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
+                        <?php
+                        if ($advancedCustom->paidOnlyFreeLabel && !$obj->paidOnlyLabelOverPoster) {
+                            foreach ($value['tags'] as $value2) {
+                                if (!empty($value2->label) && $value2->label === __("Paid Content")) {
+                                    ?><div class="label label-<?php echo $value2->type; ?>" style="margin: 0; margin-top: -2px;  width: 100%; display: block; border-top-left-radius: 0; border-top-right-radius: 0; "><?php echo $value2->text; ?></div><?php
+                                }
+                            }
+                        }
+                        ?>  
                     </div>
                 </div>
                 <div class="arrow-down" style="display: none;"></div>
@@ -68,26 +89,46 @@ foreach ($videos as $value) {
                 ?>
 
                 <?php
-                if (empty($advancedCustom->doNotDisplayViews)) {
+                if (!empty($advancedCustom) && empty($advancedCustom->doNotDisplayViews)) {
                     ?> 
                     <span class="label label-default"><i class="fa fa-eye"></i> <?php echo $value['views_count']; ?></span>
                 <?php } ?>
-                <span class="label label-success"><i class="fa fa-thumbs-up"></i> <?php echo $value['likes']; ?></span>
-                <span class="label label-success"><a style="color: inherit;" class="tile__cat" cat="<?php echo $value['clean_category']; ?>" href="<?php echo $global['webSiteRootURL'] . "cat/" . $value['clean_category']; ?>"><i class="fa"></i> <?php echo $value['category']; ?></a></span>
-
+                <?php
+                if (!empty($advancedCustom) && empty($advancedCustom->doNotDisplayLikes)) {
+                    ?>
+                    <span class="label label-success"><i class="fa fa-thumbs-up"></i> <?php echo $value['likes']; ?></span>
+                <?php } ?>
+                <?php
+                if (!empty($advancedCustom) && empty($advancedCustom->doNotDisplayCategory)) {
+                    ?>
+                    <span class="label label-success"><a style="color: inherit;" class="tile__cat" cat="<?php echo $value['clean_category']; ?>" href="<?php echo $global['webSiteRootURL'] . "cat/" . $value['clean_category']; ?>"><i class="<?php echo $value['iconClass']; ?>"></i> <?php echo $value['category']; ?></a></span>                       
+                <?php } ?>
                 <?php
                 foreach ($value['tags'] as $value2) {
-                    if ($value2->label === __("Group")) {
-                        ?>
-                        <span class="label label-<?php echo $value2->type; ?>"><?php echo $value2->text; ?></span>
-                        <?php
+                    if (!empty($advancedCustom) && empty($advancedCustom->doNotDisplayGroupsTags)) {
+                        if ($value2->label === __("Group")) {
+                            ?>
+                            <span class="label label-<?php echo $value2->type; ?>"><?php echo $value2->text; ?></span>
+                            <?php
+                        }
+                    }
+                    if ($advancedCustom->paidOnlyFreeLabel && !empty($value2->label) && $value2->label === __("Paid Content")) {
+                        ?><span class="label label-<?php echo $value2->type; ?>"><?php echo $value2->text; ?></span><?php
+                    }
+                    if (!empty($advancedCustom) && empty($advancedCustom->doNotDisplayPluginsTags)) {
+
+                        if ($value2->label === "Plugin") {
+                            ?>
+                            <span class="label label-<?php echo $value2->type; ?>"><?php echo $value2->text; ?></span>
+                            <?php
+                        }
                     }
                 }
                 ?>   
                 <?php
                 if (!empty($value['rrating'])) {
                     include $global['systemRootPath'] . 'view/rrating/rating-' . $value['rrating'] . '.php';
-                }else if($advancedCustom->showNotRatedLabel){
+                } else if (!empty($advancedCustom) && $advancedCustom->showNotRatedLabel) {
                     include $global['systemRootPath'] . 'view/rrating/notRated.php';
                 }
                 ?>
@@ -102,6 +143,15 @@ foreach ($videos as $value) {
                         </center>
                     </div>
                     <?php
+                }else{
+                    ?>
+                    <div class="col-md-2 col-sm-3 col-xs-4">
+                        <center>
+                            <img alt="<?php echo $value['title']; ?>" class="img img-responsive posterPortrait" src="<?php echo $images->thumbsJpg; ?>" style="min-width: 86px;" />
+                        </center>
+                    </div>
+                    <?php
+                    
                 }
                 ?>
                 <div class="infoText col-md-4 col-sm-6 col-xs-8">
@@ -139,4 +189,5 @@ foreach ($videos as $value) {
     <?php
 }
 
-
+$_GET = $get;
+$_POST = $post;

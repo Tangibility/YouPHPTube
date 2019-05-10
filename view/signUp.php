@@ -53,7 +53,7 @@ $agreement = YouPHPTubePlugin::loadPluginIfEnabled("SignUpAgreement");
                                 <div class="col-md-8 inputGroupContainer">
                                     <div class="input-group">
                                         <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
-                                        <input  id="inputUser" placeholder="<?php echo __("User"); ?>" class="form-control"  type="<?php echo empty($advancedCustomUser->forceLoginToBeTheEmail) ? "text" : "email"; ?>" value="" required >
+                                        <input  id="inputUser" placeholder="<?php echo !empty($advancedCustomUser->forceLoginToBeTheEmail) ? "me@example.com" : __("User"); ?>" class="form-control"  type="<?php echo empty($advancedCustomUser->forceLoginToBeTheEmail) ? "text" : "email"; ?>" value="" required >
                                     </div>
                                 </div>
                             </div>
@@ -92,18 +92,36 @@ $agreement = YouPHPTubePlugin::loadPluginIfEnabled("SignUpAgreement");
                             </div>
 
                             <?php
-                            if (empty($advancedCustomUser->signUpRequestUploadRights)) {
+                            if (!empty($advancedCustomUser->signUpRequestUploadRights)) {
                                 ?>
-                                <div class="form-group checkbox">
-                                    <label><input type="checkbox" name="signUpRequestUploadRights" id="signUpRequestUploadRights" value="1"><?php echo __("Request Rights to Upload"); ?></label>
-                                </div>    
+
+                                <div class="form-group">
+                                    <label class="col-md-4 control-label"></label>
+                                    <div class="col-md-8 inputGroupContainer">
+                                        <div class="input-group">
+                                            <div class="form-group checkbox">
+                                                <label><input type="checkbox" name="signUpRequestUploadRights" id="signUpRequestUploadRights" value="1"><?php echo __("Request Rights to Upload"); ?></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <?php
                             }
-                            if (empty($advancedCustomUser->signUpRequestLivestreamRights)) {
+                            if (!empty($advancedCustomUser->signUpRequestLivestreamRights)) {
                                 ?>
-                                <div class="form-group checkbox">
-                                    <label><input type="checkbox" name="signUpRequestLivestreamRights" id="signUpRequestLivestreamRights" value="1"><?php echo __("Request Rights to LiveStream"); ?></label>
-                                </div>    
+
+                                <div class="form-group">
+                                    <label class="col-md-4 control-label"></label>
+                                    <div class="col-md-8 inputGroupContainer">
+                                        <div class="input-group">
+                                            <div class="form-group checkbox">
+                                                <label><input type="checkbox" name="signUpRequestLivestreamRights" id="signUpRequestLivestreamRights" value="1"><?php echo __("Request Rights to LiveStream"); ?></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <?php
                             }
 

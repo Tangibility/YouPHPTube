@@ -383,6 +383,9 @@ function getMinutesTotalVideosLength() {
 }
 
 function secondsToVideoTime($seconds) {
+    if(!is_numeric($seconds)){
+        return $seconds;
+    }
     $seconds = round($seconds);
     $hours = floor($seconds / 3600);
     $mins = floor($seconds / 60 % 60);
@@ -391,6 +394,9 @@ function secondsToVideoTime($seconds) {
 }
 
 function parseDurationToSeconds($str) {
+    if(is_numeric($str)){
+        return intval($str);
+    }
     $durationParts = explode(":", $str);
     if (empty($durationParts[1]) || $durationParts[0] == "EE") {
         return 0;
@@ -431,9 +437,11 @@ function setSiteSendMessage(&$mail) {
 }
 
 function sendSiteEmail($to, $subject, $message) {
-    if(empty($to)){
+    if (empty($to)) {
         return false;
     }
+    global $config, $global;
+    require_once $global['systemRootPath'] . 'objects/PHPMailer/PHPMailerAutoload.php';
     $contactEmail = $config->getContactEmail();
     $webSiteTitle = $config->getWebSiteTitle();
     try {
@@ -443,9 +451,9 @@ function sendSiteEmail($to, $subject, $message) {
         //Set who the message is to be sent from
         $mail->setFrom($contactEmail, $webSiteTitle);
         //Set who the message is to be sent to
-        if(!is_array($to)){
+        if (!is_array($to)) {
             $mail->addAddress($to);
-        }else{
+        } else {
             foreach ($to as $value) {
                 $mail->addBCC($value);
             }
@@ -495,12 +503,14 @@ function parseVideos($videoString = null, $autoplay = 0, $loop = 0, $mute = 0, $
         return '//www.youtube.com/embed/' . $id . '?modestbranding=1&showinfo='
                 . $showinfo . "&autoplay={$autoplay}&controls=$controls&loop=$loop&mute=$mute&te=$time";
     } else if (strpos($link, 'youtu.be') !== false) {
+        //https://youtu.be/9XXOBSsPoMU
         preg_match(
-                '/youtu.be\/([a-zA-Z0-9_]+)\??/i', $link, $matches
+                '/youtu.be\/([a-zA-Z0-9_]+)($|\/)/', $link, $matches
         );
+        //the ID of the YouTube URL: x6qe_kVaBpg
         $id = $matches[1];
         return '//www.youtube.com/embed/' . $id . '?modestbranding=1&showinfo='
-                . $showinfo . "&autoplay={$autoplay}&controls=$controls&loop=$loop&mute=$mute&t=$time";
+                . $showinfo . "&autoplay={$autoplay}&controls=$controls&loop=$loop&mute=$mute&te=$time";
     } else if (strpos($link, 'player.vimeo.com') !== false) {
         // works on:
         // http://player.vimeo.com/video/37985580?title=0&amp;byline=0&amp;portrait=0
@@ -573,15 +583,16 @@ function parseVideos($videoString = null, $autoplay = 0, $loop = 0, $mute = 0, $
 
         $id = $matches[2];
         return '//streamable.com/s/' . $id;
-    } else if (strpos($link, 'twitch.tv/videos') !== false) {
+    } 
+    else if (strpos($link, 'twitch.tv/videos') !== false) {
         //extract the ID
         preg_match(
                 '/\/\/(www\.)?twitch.tv\/videos\/([a-zA-Z0-9_-]+)$/', $link, $matches
         );
-
-        $id = $matches[2];
-        return '//player.twitch.tv/?video=' . $id . '#';
-    } else if (strpos($link, 'twitch.tv/videos') !== false) {
+        if(!empty($matches[2])){
+            $id = $matches[2];
+            return '//player.twitch.tv/?video=' . $id . '#';
+        }
         //extract the ID
         preg_match(
                 '/\/\/(www\.)?twitch.tv\/[a-zA-Z0-9_-]+\/v\/([a-zA-Z0-9_-]+)$/', $link, $matches
@@ -611,6 +622,9 @@ function parseVideos($videoString = null, $autoplay = 0, $loop = 0, $mute = 0, $
 
     $url = $videoString;
     $url_parsed = parse_url($url);
+    if(empty($url_parsed['query'])){
+        return "";
+    }
     $new_qs_parsed = array();
 // Grab our first query string
     parse_str($url_parsed['query'], $new_qs_parsed);
@@ -1014,9 +1028,10 @@ function unzipDirectory($filename, $destination) {
     global $global;
     ini_set('memory_limit', '-1');
     ini_set('max_execution_time', 7200); // 2 hours
-    error_log("unzipDirectory: {$filename}");
-    exec("unzip {$filename} -d {$destination}" . "  2>&1", $output, $return_val);
-    if ($return_val !== 0) {
+    $cmd = "unzip {$filename} -d {$destination}" . "  2>&1";
+    error_log("unzipDirectory: {$cmd}");
+    exec($cmd, $output, $return_val);
+    if ($return_val !== 0 && function_exists("zip_open")) {
         // try to unzip using PHP
         error_log("unzipDirectory: TRY to use PHP {$filename}");
         $zip = zip_open($filename);
@@ -1048,18 +1063,9 @@ function unzipDirectory($filename, $destination) {
 }
 
 function make_path($path) {
-    $dir = pathinfo($path, PATHINFO_DIRNAME);
-    if (is_dir($dir)) {
-        return true;
-    } else {
-        if (make_path($dir)) {
-            if (mkdir($dir)) {
-                chmod($dir, 0777);
-                return true;
-            }
-        }
+    if (!is_dir($path)) {
+        mkdir($path, 0755, true);
     }
-    return false;
 }
 
 /**
@@ -1282,7 +1288,9 @@ function url_get_contents($Url, $ctx = "") {
         try {
             $tmp = @file_get_contents($Url, false, $context);
             if ($tmp != false) {
-                session_start();
+                if (session_status() == PHP_SESSION_NONE) {
+                    session_start();
+                }
                 $_SESSION = $session;
                 $global['mysqli'] = new mysqli($mysqlHost, $mysqlUser, $mysqlPass, $mysqlDatabase, @$mysqlPort);
                 return $tmp;
@@ -1298,13 +1306,17 @@ function url_get_contents($Url, $ctx = "") {
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
         $output = curl_exec($ch);
         curl_close($ch);
-        session_start();
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
         $_SESSION = $session;
         $global['mysqli'] = new mysqli($mysqlHost, $mysqlUser, $mysqlPass, $mysqlDatabase, @$mysqlPort);
         return $output;
     }
     $result = @file_get_contents($Url, false, $context);
-    session_start();
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start();
+    }
     $_SESSION = $session;
     $global['mysqli'] = new mysqli($mysqlHost, $mysqlUser, $mysqlPass, $mysqlDatabase, @$mysqlPort);
     return $result;
@@ -1429,18 +1441,199 @@ function encryptPassword($password, $noSalt = false) {
 function encryptPasswordVerify($password, $hash, $encodedPass = false) {
     global $advancedCustom, $global;
     if (!$encodedPass || $encodedPass === 'false') {
+        error_log("encryptPasswordVerify: encrypt");
         $passwordSalted = encryptPassword($password);
         // in case you enable the salt later
         $passwordUnSalted = encryptPassword($password, true);
     } else {
+        error_log("encryptPasswordVerify: do not encrypt");
         $passwordSalted = $password;
         // in case you enable the salt later
         $passwordUnSalted = $password;
     }
-
+    //error_log("passwordSalted = $passwordSalted,  hash=$hash, passwordUnSalted=$passwordUnSalted");
     return $passwordSalted === $hash || $passwordUnSalted === $hash;
 }
 
 function isMobile() {
     return preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|fone|hiptop|mini|mobi|palm|phone|pie|tablet|up\.browser|up\.link|webos|wos)/i", $_SERVER["HTTP_USER_AGENT"]);
+}
+
+function siteMap() {
+    global $global;
+    $date = date('Y-m-d\TH:i:s') . "+00:00";
+
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>
+    <urlset
+        xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+        <!-- Main Page -->
+        <url>
+            <loc>' . $global['webSiteRootURL'] . '</loc>
+            <lastmod>' . $date . '</lastmod>
+            <changefreq>always</changefreq>
+            <priority>1.00</priority>
+        </url>
+
+        <url>
+            <loc>' . $global['webSiteRootURL'] . 'help</loc>
+            <lastmod>' . $date . '</lastmod>
+            <changefreq>monthly</changefreq>
+            <priority>0.50</priority>
+        </url>
+        <url>
+            <loc>' . $global['webSiteRootURL'] . 'about</loc>
+            <lastmod>' . $date . '</lastmod>
+            <changefreq>monthly</changefreq>
+            <priority>0.50</priority>
+        </url>
+        <url>
+            <loc>' . $global['webSiteRootURL'] . 'contact</loc>
+            <lastmod>' . $date . '</lastmod>
+            <changefreq>monthly</changefreq>
+            <priority>0.50</priority>
+        </url>
+
+        <!-- Channels -->
+        <url>
+            <loc>' . $global['webSiteRootURL'] . 'channels</loc>
+            <lastmod>' . $date . '</lastmod>
+            <changefreq>daily</changefreq>
+            <priority>0.80</priority>
+        </url>
+        ';
+    $users = User::getAllUsers(true);
+    foreach ($users as $value) {
+        $xml .= '        
+            <url>
+                <loc>' . User::getChannelLink($value['id']) . '</loc>
+                <lastmod>' . $date . '</lastmod>
+                <changefreq>daily</changefreq>
+                <priority>0.70</priority>
+            </url>
+            ';
+    }
+    $xml .= ' 
+        <!-- Categories -->
+        ';
+    $rows = Category::getAllCategories();
+    foreach ($rows as $value) {
+        $xml .= '  
+            <url>
+                <loc>' . $global['webSiteRootURL'] . 'cat/' . $value['clean_name'] . '</loc>
+                <lastmod>' . $date . '</lastmod>
+                <changefreq>weekly</changefreq>
+                <priority>0.80</priority>
+            </url>
+            ';
+    }
+    $xml .= '<!-- Videos -->';
+    $rows = Video::getAllVideos("viewable");
+    foreach ($rows as $value) {
+        $xml .= '   
+            <url>
+                <loc>' . Video::getLink($value['id'], $value['clean_title']) . '</loc>
+                <lastmod>' . $date . '</lastmod>
+                <changefreq>monthly</changefreq>
+                <priority>0.80</priority>
+            </url>
+            ';
+    }
+    $xml .= '</urlset> ';
+    return $xml;
+}
+
+function object_to_array($obj) {
+    //only process if it's an object or array being passed to the function
+    if (is_object($obj) || is_array($obj)) {
+        $ret = (array) $obj;
+        foreach ($ret as &$item) {
+            //recursively process EACH element regardless of type
+            $item = object_to_array($item);
+        }
+        return $ret;
+    }
+    //otherwise (i.e. for scalar values) return without modification
+    else {
+        return $obj;
+    }
+}
+
+function allowOrigin() {
+    global $global;
+    if (empty($_SERVER['HTTP_ORIGIN'])) {
+        $server = parse_url($global['webSiteRootURL']);
+        header('Access-Control-Allow-Origin: ' . $server["scheme"] . '://imasdk.googleapis.com');
+    } else {
+        header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN']);
+    }
+}
+
+if (!function_exists("rrmdir")) {
+
+    function rrmdir($dir) {
+        if (is_dir($dir)) {
+            $objects = scandir($dir);
+            foreach ($objects as $object) {
+                if ($object != "." && $object != "..") {
+                    if (is_dir($dir . "/" . $object))
+                        rrmdir($dir . "/" . $object);
+                    else
+                        unlink($dir . "/" . $object);
+                }
+            }
+            rmdir($dir);
+        }
+    }
+
+}
+
+/**
+ * You can now configure it on the configuration.php
+ * @return boolean
+ */
+function ddosProtection() {
+    global $global;
+    $maxCon = empty($global['ddosMaxConnections']) ? 40 : $global['ddosMaxConnections'];
+    $secondTimeout = empty($global['ddosSecondTimeout']) ? 5 : $global['ddosSecondTimeout'];
+    $whitelistedFiles = array(
+        'playlists.json.php',
+        'playlistsFromUserVideos.json.php'
+    );
+
+    if (in_array(basename($_SERVER["SCRIPT_FILENAME"]), $whitelistedFiles)) {
+        return true;
+    }
+
+    $time = time();
+    if (!isset($_SESSION['bruteForceBlock']) || empty($_SESSION['bruteForceBlock'])) {
+        $_SESSION['bruteForceBlock'] = array();
+        $_SESSION['bruteForceBlock'][] = $time;
+        return true;
+    }
+
+    $_SESSION['bruteForceBlock'][] = $time;
+
+    //remove requests that are older than secondTimeout
+    foreach ($_SESSION['bruteForceBlock'] as $key => $request_time) {
+        if ($request_time < $time - $secondTimeout) {
+            unset($_SESSION['bruteForceBlock'][$key]);
+        }
+    }
+
+    //progressive timeout-> more requests, longer timeout
+    $active_connections = count($_SESSION['bruteForceBlock']);
+    $timeoutReal = ($active_connections / $maxCon) < 1 ? 0 : ($active_connections / $maxCon) * $secondTimeout;
+    sleep($timeoutReal);
+
+    //with strict mode, penalize "attacker" with sleep() above, log and then die
+    if ($global['strictDDOSprotection'] && $timeoutReal > 0) {
+        $str = "bruteForceBlock: maxCon: $maxCon => secondTimeout: $secondTimeout | IP: " . getRealIpAddr() . " | count:" . count($_SESSION['bruteForceBlock']);
+        error_log($str);
+        die($str);
+    }
+
+    return true;
 }

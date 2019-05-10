@@ -51,7 +51,7 @@ if(!empty($objSecure)){
             <video poster="<?php echo $global['webSiteRootURL']; ?>plugin/Live/view/OnAir.jpg" controls
                    class="embed-responsive-item video-js vjs-default-skin vjs-big-play-centered"
                    id="mainVideo" data-setup='{ "aspectRatio": "16:9",  "techorder" : ["flash", "html5"] }'>
-                <source src="<?php echo $p->getPlayerServer(); ?>/<?php echo $uuid; ?>/index.m3u8" type='application/x-mpegURL'>
+                <source src="<?php echo $p->getM3U8File($uuid); ?>" type='application/x-mpegURL'>
             </video>
             <?php
             if (YouPHPTubePlugin::isEnabled("0e225f8e-15e2-43d4-8ff7-0cb07c2a2b3b")) {
@@ -124,6 +124,22 @@ if ($config->getAutoplay()) {
         require_once $global['systemRootPath'] . 'plugin/YouPHPTubePlugin.php';
         echo YouPHPTubePlugin::getFooterCode();
         ?>
+        <?php
+        if (empty($liveDO->disableDVR)) {
+            ?>
+            <script src="<?php echo $global['webSiteRootURL']; ?>plugin/Live/videojs-dvr/videojs-dvrseekbar.min.js" type="text/javascript"></script>          
+            <script>
+                $(document).ready(function () {
+                    if (typeof player === 'undefined') {
+                        player = videojs('mainVideo');
+                    }
+
+                    player.dvrseekbar();
+                });
+            </script>      
+            <?php
+        }
+        ?>    
     </body>
 </html>
 

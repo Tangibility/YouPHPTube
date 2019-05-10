@@ -1,3 +1,22 @@
+<style>
+    .bootgrid-table td {
+        -ms-text-overflow: initial;
+        -o-text-overflow: initial;
+        text-overflow: initial;
+    }
+    .viewsDetails{
+        color: #FFF;
+    }
+
+    .viewsDetails:hover{
+        color: #AAF;
+    }
+
+    .progress-bar {
+        -webkit-transition: width 2.5s ease;
+        transition: width 2.5s ease;
+    }
+</style>
 <div class="container">
     <?php include $global['systemRootPath'] . 'view/include/updateCheck.php'; ?>
 
@@ -150,7 +169,7 @@
                             <li>
                                 <a href="#"  onclick="userGroupSave(<?php echo $value['id']; ?>, 1);return false;">
                                     <span class="fa fa-lock"></span>
-                                    <span class="label label-info"><?php echo $value['total_users']; ?> Users linked</span>
+                                    <span class="label label-info"><?php echo $value['total_users'] . " "; ?><?php echo __("Users linked"); ?></span>
                                     <?php echo $value['group_name']; ?>
                                 </a>  
                             </li>
@@ -169,7 +188,7 @@
                             <li>
                                 <a href="#"  onclick="userGroupSave(<?php echo $value['id']; ?>, 0);return false;">
                                     <span class="fa fa-lock"></span>
-                                    <span class="label label-info"><?php echo $value['total_users']; ?> Users linked</span>
+                                    <span class="label label-info"><?php echo $value['total_users'] . " " . __("Users linked"); ?></span>
                                     <?php echo $value['group_name']; ?>
                                 </a>  
                             </li>
@@ -257,7 +276,7 @@
                                     <input type="hidden" id="inputVideoId"  >
                                     <div class="titles">
                                         <label for="inputTitle"><?php echo __("Title"); ?></label>
-                                        <input type="text" id="inputTitle" class="form-control" placeholder="<?php echo __("Title"); ?>" required autofocus>
+                                        <input type="text" id="inputTitle" class="form-control" placeholder="<?php echo __("Title"); ?>" required>
                                         <label for="inputCleanTitle" ><?php echo __("Clean Title"); ?></label>
                                         <input type="text" id="inputCleanTitle" class="form-control" placeholder="<?php echo __("Clean Title"); ?>" required>
                                     </div>
@@ -287,9 +306,9 @@
                                     <select class="form-control last" id="inputRrating">
                                         <?php
                                         foreach (Video::$rratingOptions as $value) {
-                                            if(empty($value)){
+                                            if (empty($value)) {
                                                 $label = "Not Rated";
-                                            }else{
+                                            } else {
                                                 $label = strtoupper($value);
                                             }
                                             echo "<option value='{$value}'>{$label}</option>";
@@ -337,6 +356,32 @@
                                                     <?php
                                                 }
                                                 ?>
+                                                <?php
+                                                if ($advancedCustom->paidOnlyUsersTellWhatVideoIs || User::isAdmin()) {
+                                                    ?>
+                                                    <li class="list-group-item">
+                                                        <i class="fas fa-money-check-alt"></i> <?php echo __("Only Paid Users Can Watch"); ?>
+                                                        <div class="material-switch pull-right">
+                                                            <input id="only_for_paid" type="checkbox" value="0" class="userGroups"/>
+                                                            <label for="only_for_paid" class="label-success"></label>
+                                                        </div>
+                                                    </li>
+                                                    <?php
+                                                }
+                                                ?>
+                                                <?php
+                                                if ($advancedCustom->paidOnlyUsersTellWhatVideoIs || User::isAdmin()) {
+                                                    ?>
+                                                    <li class="list-group-item">
+                                                        <i class="fas fa-money-check-alt"></i> <?php echo __("Only Paid Users Can Watch"); ?>
+                                                        <div class="material-switch pull-right">
+                                                            <input id="only_for_paid" type="checkbox" value="0" class="userGroups"/>
+                                                            <label for="only_for_paid" class="label-success"></label>
+                                                        </div>
+                                                    </li>
+                                                    <?php
+                                                }
+                                                ?>
                                                 <li class="list-group-item">
                                                     <span class="fa fa-globe"></span> <?php echo __("Public Video"); ?>
                                                     <div class="material-switch pull-right">
@@ -354,7 +399,7 @@
                                                     <li class="list-group-item non-public">
                                                         <span class="fa fa-lock"></span>
                                                         <?php echo $value['group_name']; ?>
-                                                        <span class="label label-info"><?php echo $value['total_users']; ?> Users linked</span>
+                                                        <span class="label label-info"><?php echo $value['total_users'] . " " . __("Users linked"); ?></span>
                                                         <div class="material-switch pull-right">
                                                             <input id="videoGroup<?php echo $value['id']; ?>" type="checkbox" value="<?php echo $value['id']; ?>" class="videoGroups"/>
                                                             <label for="videoGroup<?php echo $value['id']; ?>" class="label-warning"></label>
@@ -385,8 +430,12 @@
                                         </div>
                                     </div>
                                     <label for="inputTrailer"><?php echo __("Embed code for trailer"); ?></label>
-                                    <input type="text" id="inputTrailer" class="form-control" placeholder="<?php echo __("Embed code for trailer"); ?>" required autofocus>
+                                    <input type="text" id="inputTrailer" class="form-control" placeholder="<?php echo __("Embed code for trailer"); ?>" required>
 
+                                    <div>
+                                        <label for="videoStartSecond" ><?php echo __("Start video at:"); ?></label>
+                                        <input type="text" id="videoStartSeconds" class="form-control externalOptions" placeholder="00:00:00" value="00:00:00" required>
+                                    </div>
 
                                     <script>
                                         $(function () {
@@ -460,12 +509,48 @@
                     </div>
                     <div id="videoLinkContent">
                         <label for="videoLink" ><?php echo __("Video Link"); ?></label>
-                        <input type="text" id="videoLink" class="form-control first" placeholder="<?php echo __("Video Link"); ?> http://www.your-embed-link.com/video" required>
+                        <input type="text" id="videoLink" class="form-control" placeholder="<?php echo __("Video Link"); ?> http://www.your-embed-link.com/video" required>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo __("Close"); ?></button>
                     <button type="button" class="btn btn-primary" id="saveVideoBtn"><?php echo __("Save changes"); ?></button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+    <div id="videoViewFormModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title"><?php echo __("Video Views"); ?></h4>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: scroll;">
+                    <div class="progress" id="progress25" style="width: 100%;">
+                        <div class="progress-bar progress-bar-success progress-bar-striped" role="progressbar"
+                             aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:0">
+                            0%
+                        </div>
+                    </div>
+                    <div class="progress" id="progress50" style="width: 100%;">
+                        <div class="progress-bar progress-bar-info progress-bar-striped" role="progressbar"
+                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0">
+                            0%
+                        </div>
+                    </div>
+                    <div class="progress" id="progress75" style="width: 100%;">
+                        <div class="progress-bar progress-bar-warning progress-bar-striped" role="progressbar"
+                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0">
+                            0%
+                        </div>
+                    </div>
+                    <div class="progress" id="progress100" style="width: 100%;">
+                        <div class="progress-bar progress-bar-danger progress-bar-striped" role="progressbar"
+                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0">
+                            0%
+                        </div>
+                    </div>
                 </div>
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
@@ -531,6 +616,22 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                         // make sure the video was uploaded, delete in case it was not uploaded
                                         var videoUploaded = false;
                                         var videos_id = 0;
+
+                                        function saveVideoOnPlaylist(videos_id, add, playlists_id) {
+                                            modal.showPleaseWait();
+                                            $.ajax({
+                                                url: '<?php echo $global['webSiteRootURL']; ?>objects/playListAddVideo.json.php',
+                                                method: 'POST',
+                                                data: {
+                                                    'videos_id': videos_id,
+                                                    'add': add,
+                                                    'playlists_id': playlists_id
+                                                },
+                                                success: function (response) {
+                                                    modal.hidePleaseWait();
+                                                }
+                                            });
+                                        }
 
                                         function changeStatus(status) {
                                             modal.showPleaseWait();
@@ -705,6 +806,22 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                             if (!row.id) {
                                                 row.id = videos_id;
                                             }
+
+                                            $(".externalOptions").val("");
+                                            try {
+                                                externalOptionsObject = JSON.parse(row.externalOptions);
+                                                for (var key in externalOptionsObject) {
+                                                    if (externalOptionsObject.hasOwnProperty(key)) {
+                                                        $('#' + key).val(externalOptionsObject[key]);
+                                                    }
+                                                }
+                                            } catch (e) {
+
+                                            }
+
+
+
+
                                             $('.uploadFile').hide();
                                             $('.nav-tabs a[href="#pmetadata"]').tab('show');
                                             waitToSubmit = true;
@@ -716,6 +833,7 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                             } else {
                                                 $('#videoLinkContent').slideUp();
                                             }
+
                                             $('#inputVideoId').val(row.id);
                                             $('#inputTitle').val(row.title);
                                             $('#inputTrailer').val(row.trailer1);
@@ -726,14 +844,13 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
 <?php
 if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
     echo VideoTags::getTagsInputsJqueryRemoveAll();
-    
-    ?>                                          
-                                            if (typeof row.videoTags !== 'undefined' && row.videoTags.length) {
-                                                console.log(row.videoTags);
-                                                for (i = 0; i < row.videoTags.length; i++) {
-                                                    $('#inputTags'+row.videoTags[i].tag_types_id).tagsinput('add', row.videoTags[i].name);
+    ?>
+                                                if (typeof row.videoTags !== 'undefined' && row.videoTags.length) {
+                                                    console.log(row.videoTags);
+                                                    for (i = 0; i < row.videoTags.length; i++) {
+                                                        $('#inputTags' + row.videoTags[i].tag_types_id).tagsinput('add', row.videoTags[i].name);
+                                                    }
                                                 }
-                                            }
     <?php
 }
 ?>
@@ -778,10 +895,23 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                                 $('#can_share').prop('checked', false);
                                             }
 
+                                            if (row.only_for_paid) {
+                                                $('#only_for_paid').prop('checked', true);
+                                            } else {
+                                                $('#only_for_paid').prop('checked', false);
+                                            }
+
+                                            if (row.only_for_paid) {
+                                                $('#only_for_paid').prop('checked', true);
+                                            } else {
+                                                $('#only_for_paid').prop('checked', false);
+                                            }
+
                                             $('#public').trigger("change");
                                             $('#videoIsAd').prop('checked', false);
                                             $('#videoIsAd').trigger("change");
                                             $('#input-jpg, #input-gif, #input-pjpg, #input-pgif').fileinput('destroy');
+                                            console.log("Fileinput: input-jpg");
                                             $("#input-jpg").fileinput({
                                                 uploadUrl: "<?php echo $global['webSiteRootURL']; ?>objects/uploadPoster.php?video_id=" + row.id + "&type=jpg",
                                                 autoReplace: true,
@@ -798,6 +928,7 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                                 layoutTemplates: {actionDelete: ''}, // disable thumbnail deletion
                                                 allowedFileExtensions: ["jpg"]
                                             });
+                                            console.log("Fileinput: input-pjpg");
                                             $("#input-pjpg").fileinput({
                                                 uploadUrl: "<?php echo $global['webSiteRootURL']; ?>objects/uploadPoster.php?video_id=" + row.id + "&type=pjpg",
                                                 autoReplace: true,
@@ -814,6 +945,7 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                                 layoutTemplates: {actionDelete: ''}, // disable thumbnail deletion
                                                 allowedFileExtensions: ["jpg"]
                                             });
+                                            console.log("Fileinput: input-gif");
                                             $("#input-gif").fileinput({
                                                 uploadUrl: "<?php echo $global['webSiteRootURL']; ?>objects/uploadPoster.php?video_id=" + row.id + "&type=gif",
                                                 autoReplace: true,
@@ -830,6 +962,7 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                                 layoutTemplates: {actionDelete: ''}, // disable thumbnail deletion
                                                 allowedFileExtensions: ["gif"]
                                             });
+                                            console.log("Fileinput: input-pgif");
                                             $("#input-pgif").fileinput({
                                                 uploadUrl: "<?php echo $global['webSiteRootURL']; ?>objects/uploadPoster.php?video_id=" + row.id + "&type=pgif",
                                                 autoReplace: true,
@@ -875,51 +1008,62 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                                 selectedVideoGroups = [];
                                             }
                                             modal.showPleaseWait();
+
+                                            var externalOptionsObject = {};
+                                            $('.externalOptions').each(function (i, obj) {
+                                                var name = $(this).attr('id');
+                                                eval('externalOptionsObject.' + name + '="' + $(this).val() + '"');
+                                            });
+
+                                            var externalOptions = JSON.stringify(externalOptionsObject);
+
                                             $.ajax({
-                                                url: '<?php echo $global['webSiteRootURL']; ?>objects/videoAddNew.json.php',
-                                                data: {
-                                                    "id": $('#inputVideoId').val(),
-                                                    "title": $('#inputTitle').val(),
-                                                    <?php
+                                            url: '<?php echo $global['webSiteRootURL']; ?>objects/videoAddNew.json.php',
+                                                    data: {
+                                                    "externalOptions":externalOptions,
+                                                            "id": $('#inputVideoId').val(),
+                                                            "title": $('#inputTitle').val(),
+<?php
 if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
-    echo '"videoTags": '.VideoTags::getTagsInputsJquery().',';
+    echo '"videoTags": ' . VideoTags::getTagsInputsJquery() . ',';
 }
 ?>
                                                     "trailer1": $('#inputTrailer').val(),
-                                                    "videoLink": $('#videoLink').val(),
-                                                    "videoLinkType": $('#videoLinkType').val(),
-                                                    "clean_title": $('#inputCleanTitle').val(),
-                                                    "description": $('#inputDescription').val(),
-                                                    "categories_id": $('#inputCategory').val(),
-                                                    "rrating": $('#inputRrating').val(),
-                                                    "public": isPublic,
-                                                    "videoGroups": selectedVideoGroups,
-                                                    "next_videos_id": $('#inputNextVideo-id').val(),
-                                                    "users_id": $('#inputUserOwner_id').val(),
-                                                    "can_download": $('#can_download').is(':checked'),
-                                                    "can_share": $('#can_share').is(':checked')
-                                                },
-                                                type: 'post',
-                                                success: function (response) {
+                                                            "videoLink": $('#videoLink').val(),
+                                                            "videoLinkType": $('#videoLinkType').val(),
+                                                            "clean_title": $('#inputCleanTitle').val(),
+                                                            "description": $('#inputDescription').val(),
+                                                            "categories_id": $('#inputCategory').val(),
+                                                            "rrating": $('#inputRrating').val(),
+                                                            "public": isPublic,
+                                                            "videoGroups": selectedVideoGroups,
+                                                            "next_videos_id": $('#inputNextVideo-id').val(),
+                                                            "users_id": $('#inputUserOwner_id').val(),
+                                                            "can_download": $('#can_download').is(':checked'),
+                                                            "can_share": $('#can_share').is(':checked'),
+                                                            "only_for_paid": $('#only_for_paid').is(':checked')
+                                                    },
+                                                    type: 'post',
+                                                    success: function (response) {
                                                     if (response.status === "1" || response.status === true) {
-                                                        if (response.video.type === 'embed') {
-                                                            videoUploaded = true;
-                                                        }
-                                                        if (closeModal && videoUploaded) {
-                                                            $('#videoFormModal').modal('hide');
-                                                        }
-                                                        $("#grid").bootgrid("reload");
-                                                        $('#fileUploadVideos_id').val(response.videos_id);
-                                                        $('#inputVideoId').val(response.videos_id);
-                                                        videos_id = response.videos_id;
+                                                    if (response.video.type === 'embed') {
+                                                    videoUploaded = true;
+                                                    }
+                                                    if (closeModal && videoUploaded) {
+                                                    $('#videoFormModal').modal('hide');
+                                                    }
+                                                    $("#grid").bootgrid("reload");
+                                                            $('#fileUploadVideos_id').val(response.videos_id);
+                                                            $('#inputVideoId').val(response.videos_id);
+                                                            videos_id = response.videos_id;
                                                     } else {
-                                                        swal("<?php echo __("Sorry!"); ?>", "<?php echo __("Your video has NOT been saved!"); ?>", "error");
+                                                    swal("<?php echo __("Sorry!"); ?>", "<?php echo __("Your video has NOT been saved!"); ?>", "error");
                                                     }
                                                     modal.hidePleaseWait();
-                                                    setTimeout(function () {
-                                                        waitToSubmit = false;
-                                                    }, 3000);
-                                                }
+                                                            setTimeout(function () {
+                                                            waitToSubmit = false;
+                                                            }, 3000);
+                                                    }
                                             });
                                             return false;
                                         }
@@ -936,7 +1080,7 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                             $('#inputCategory').val("");
                                             $('#inputRrating').val("");
                                             $('#removeAutoplay').trigger('click');
-                                            
+
 <?php
 if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
     echo VideoTags::getTagsInputsJqueryRemoveAll();
@@ -950,6 +1094,7 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                             $('.videoGroups').prop('checked', false);
                                             $('#can_download').prop('checked', false);
                                             $('#can_share').prop('checked', false);
+                                            $('#only_for_paid').prop('checked', false);
                                             $('#public').prop('checked', true);
                                             $('#public').trigger("change");
                                             $('#videoIsAd').prop('checked', false);
@@ -1062,12 +1207,12 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                             videos_id = 0;
                                         }
 
-                                        function getEmbedCode(id){
+                                        function getEmbedCode(id) {
                                             copyToClipboard($('#embedInput' + id).val());
-                                            $('#copied'+id).fadeIn();
-                                            setTimeout(function(){
-                                                $('#copied'+id).fadeOut();
-                                            },2000);
+                                            $('#copied' + id).fadeIn();
+                                            setTimeout(function () {
+                                                $('#copied' + id).fadeOut();
+                                            }, 2000);
                                         }
 
                                         function createQueueItem(queueItem, position) {
@@ -1081,6 +1226,70 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                             item += '</div><div class="progress progress-striped active " id="downloadProgress' + queueItem.id + '" style="height: 10px;"><div class="progress-bar  progress-bar-danger" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0;"></div></div> ';
                                             $('#encodeProgress' + id).html(item);
                                         }
+
+                                        function viewsDetails(views_count, views_count_25, views_count_50, views_count_75, views_count_100) {
+                                            viewsDetailsReset();
+                                            $("#videoViewFormModal .modal-title").html("Total views: " + views_count);
+                                            var p25 = (views_count_25 / views_count) * 100;
+                                            var p50 = (views_count_50 / views_count) * 100;
+                                            var p75 = (views_count_75 / views_count) * 100;
+                                            var p100 = (views_count_100 / views_count) * 100;
+                                            $('#videoViewFormModal').modal();
+
+                                            $("#progress25 .progress-bar")
+                                                    .css("width", p25 + "%")
+                                                    .attr("aria-valuenow", p25)
+                                                    .text("25/100: " + p25 + "%");
+
+
+                                            $("#progress50 .progress-bar")
+                                                    .css("width", p50 + "%")
+                                                    .attr("aria-valuenow", p50)
+                                                    .text("Half: " + p50 + "%");
+
+
+                                            $("#progress75 .progress-bar")
+                                                    .css("width", p75 + "%")
+                                                    .attr("aria-valuenow", p75)
+                                                    .text("75/100: " + p75 + "%");
+
+
+                                            $("#progress100 .progress-bar")
+                                                    .css("width", p100 + "%")
+                                                    .attr("aria-valuenow", p100)
+                                                    .text("End: " + p100 + "%");
+
+                                        }
+                                        
+                                        function viewsDetailsReset() {
+                                            $("#videoViewFormModal .modal-title").html("Loading ... ");
+                                            $("#progress25 .progress-bar")
+                                                    .css("width", "0")
+                                                    .attr("aria-valuenow", "0")
+                                                    .text("Loading ...");
+
+
+                                            $("#progress50 .progress-bar")
+                                                    .css("width", "0")
+                                                    .attr("aria-valuenow", "0")
+                                                    .text("Loading ...");
+
+
+                                            $("#progress75 .progress-bar")
+                                                    .css("width", "0")
+                                                    .attr("aria-valuenow", "0")
+                                                    .text("Loading ...");
+
+
+                                            $("#progress100 .progress-bar")
+                                                    .css("width", "0")
+                                                    .attr("aria-valuenow", "0")
+                                                    .text("Loading ...");
+
+                                        }
+                                        
+                                        
+
                                         $(document).ready(function () {
 
                                             $('#videoFormModal').on('hidden.bs.modal', function () {
@@ -1223,6 +1432,7 @@ if (!empty($row)) {
                                                 $('#inputRrating').val("");
                                                 $('.videoGroups').prop('checked', false);
                                                 $('#can_download').prop('checked', false);
+                                                $('#only_for_paid').prop('checked', false);
                                                 $('#can_share').prop('checked', false);
                                                 $('#public').prop('checked', true);
                                                 $('#public').trigger("change");
@@ -1232,6 +1442,7 @@ if (!empty($row)) {
                                                 $('#postersImage, #videoIsAdControl, .titles').slideUp();
                                                 $('#videoLinkContent').slideDown();
                                                 $('#videoLink').val('');
+                                                $('#videoStartSecond').val('00:00:00');
 <?php
 if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
     echo VideoTags::getTagsInputsJqueryRemoveAll();
@@ -1366,7 +1577,7 @@ if (YouPHPTubePlugin::isEnabledByName("VideoTags")) {
                                                     {
                                                         var embedBtn = '<button type="button" class="btn btn-xs btn-default command-embed" id="embedBtn' + row.id + '"  onclick="getEmbedCode(' + row.id + ')" data-toggle="tooltip" data-placement="left" title="<?php echo str_replace("'", "\\'", __("Copy embed code")); ?>"><span class="fa fa-copy" aria-hidden="true"></span> <span id="copied' + row.id + '" style="display:none;"><?php echo str_replace("'", "\\'", __("Copied")); ?></span></button>'
                                                         embedBtn += '<input type="hidden" id="embedInput' + row.id + '" value=\'<iframe width="640" height="480" style="max-width: 100%;max-height: 100%;" src="<?php echo $global['webSiteRootURL']; ?>vEmbed/' + row.id + '" frameborder="0" allowfullscreen="allowfullscreen" allow="autoplay"></iframe>\'/>';
-    
+
                                                         var editBtn = '<button type="button" class="btn btn-xs btn-default command-edit" data-row-id="' + row.id + '" data-toggle="tooltip" data-placement="left" title="<?php echo str_replace("'", "\\'", __("Edit")); ?>"><span class="glyphicon glyphicon-edit" aria-hidden="true"></span></button>'
                                                         var deleteBtn = '<button type="button" class="btn btn-default btn-xs command-delete"  data-row-id="' + row.id + '"  data-toggle="tooltip" data-placement="left" title="<?php echo str_replace("'", "\\'", __("Delete")); ?>"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>';
                                                         var activeBtn = '<button style="color: #090" type="button" class="btn btn-default btn-xs command-active"  data-row-id="' + row.id + '"  data-toggle="tooltip" data-placement="left" title="<?php echo str_replace("'", "\\'", __("Inactivate")); ?>"><span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span></button>';
@@ -1395,7 +1606,16 @@ if (User::isAdmin()) {
                                                         var pluginsButtons = '<br><?php echo YouPHPTubePlugin::getVideosManagerListButton(); ?>';
                                                         var download = "";
                                                         for (var k in row.videosURL) {
-                                                            download += '<a href="' + row.videosURL[k].url + '?download=1" class="btn btn-default btn-xs" target="_blank" ><span class="fa fa-download " aria-hidden="true"></span> ' + k + '</a><br>';
+                                                            var url = row.videosURL[k].url;
+                                                            if (typeof row.videosURL[k].url === 'undefined') {
+                                                                continue;
+                                                            }
+                                                            if (url.indexOf('?') > -1) {
+                                                                //url += "&download=1";
+                                                            } else {
+                                                                url += "?download=1";
+                                                            }
+                                                            download += '<a href="' + url + '" class="btn btn-default btn-xs" target="_blank" ><span class="fa fa-download " aria-hidden="true"></span> ' + k + '</a><br>';
                                                         }
 
                                                         if (row.status == "i") {
@@ -1414,7 +1634,7 @@ if (User::isAdmin()) {
 
                                                         var nextIsSet;
                                                         if (row.next_video == null || row.next_video.length == 0) {
-                                                            nextIsSet = "<span class='label label-danger'>Next video NOT set</span>";
+                                                            nextIsSet = "<span class='label label-danger'> <?php echo __("Next video NOT set"); ?> </span>";
                                                         } else {
                                                             var nextVideoTitle;
                                                             if (row.next_video.title.length > 20) {
@@ -1436,7 +1656,9 @@ if (User::isAdmin()) {
                                                             tags += "<span class='label label-primary fix-width'>" + row.tags[i].label + ": </span><span class=\"label label-" + row.tags[i].type + " fix-width\">" + row.tags[i].text + "</span><br>";
                                                         }
                                                         tags += "<span class='label label-primary fix-width'><?php echo __("Type") . ":"; ?> </span><span class=\"label label-default fix-width\">" + row.type + "</span><br>";
-                                                        return tags+row.typeLabels;
+                                                        tags += "<span class='label label-primary fix-width'><?php echo __("Views") . ":"; ?> </span><span class=\"label label-default fix-width\">" + row.views_count + " <a href='#' class='viewsDetails' onclick='viewsDetails(" + row.views_count + ", " + row.views_count_25 + "," + row.views_count_50 + "," + row.views_count_75 + "," + row.views_count_100 + ");'>[<i class='fas fa-info-circle'></i> Details]</a></span><br>";
+                                                        tags += "<span class='label label-primary fix-width'><?php echo __("Format") . ":"; ?> </span>"+row.typeLabels;
+                                                        return tags;
                                                     },
                                                     "checkbox": function (column, row) {
                                                         var tags = "<input type='checkbox' name='checkboxVideo' class='checkboxVideo' value='" + row.id + "'>";
@@ -1485,7 +1707,18 @@ if (User::isAdmin()) {
                                                                 img = "<img class='img img-responsive " + is_portrait + " img-thumbnail pull-left rotate" + row.rotation + "' src='<?php echo $global['webSiteRootURL']; ?>videos/" + row.filename + ".jpg?" + Math.random() + "'  style='max-height:80px; margin-right: 5px;'> ";
                                                             }
                                                         }
-                                                        return img + '<a href="<?php echo $global['webSiteRootURL']; ?>video/' + row.clean_title + '" class="btn btn-default btn-xs">' + type + row.title + "</a>" + tags + "" + yt;
+<?php
+if (YouPHPTubePlugin::isEnabledByName('PlayLists')) {
+    ?>
+                                                            var playList = "<hr><div class='videoPlaylist' videos_id='" + row.id + "' style='height:100px; overflow-y: scroll; padding:10px 5px;'></div>";
+    <?php
+} else {
+    ?>
+                                                            var playList = '';
+    <?php
+}
+?>
+                                                        return img + '<a href="<?php echo $global['webSiteRootURL']; ?>video/' + row.clean_title + '" class="btn btn-default btn-xs">' + type + row.title + "</a>" + tags + "" + yt + playList;
                                                     }
 
 
@@ -1499,6 +1732,30 @@ if (User::isAdmin()) {
                                                     return ret;
                                                 },
                                             }).on("loaded.rs.jquery.bootgrid", function () {
+
+
+                                                $('.videoPlaylist').each(function (i, obj) {
+                                                    var $this = this;
+                                                    var videos_id = $($this).attr('videos_id');
+                                                    //$(this).html($(this).attr('videos_id'));
+                                                    $.ajax({
+                                                        url: '<?php echo $global['webSiteRootURL']; ?>objects/playlistsFromUserVideos.json.php',
+                                                        data: {"users_id": <?php echo User::getId(); ?>, "videos_id": videos_id},
+                                                        type: 'post',
+                                                        success: function (response) {
+                                                            var lists = "";
+                                                            for (var x in response) {
+                                                                if (typeof response[x] !== 'object') {
+                                                                    continue;
+                                                                }
+
+                                                                lists += '<div class="material-small material-switch"><input onchange="saveVideoOnPlaylist(' + videos_id + ', $(this).is(\':checked\'), ' + response[x].id + ')" data-toggle="toggle" type="checkbox" id="playlistVideo' + videos_id + "_" + response[x].id + '" value="1" ' + (response[x].isOnPlaylist ? "checked" : "") + ' videos_id="' + videos_id + '" ><label for="playlistVideo' + videos_id + "_" + response[x].id + '" class="label-primary"></label>  ' + response[x].name + '</div>';
+
+                                                            }
+                                                            $($this).html(lists);
+                                                        }
+                                                    });
+                                                });
                                                 /* Executes after data is loaded and rendered */
                                                 grid.find(".command-edit").on("click", function (e) {
                                                     waitToSubmit = true;

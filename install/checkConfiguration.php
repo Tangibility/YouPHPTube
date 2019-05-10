@@ -1,6 +1,6 @@
 <?php
 
-$installationVersion = "6.5";
+$installationVersion = "7.2";
 
 
 header('Content-Type: application/json');
@@ -123,16 +123,22 @@ if(empty($_POST['salt'])){
     $_POST['salt'] = uniqid();
 }
 $content = "<?php
+\$global['configurationVersion'] = 2;
 \$global['disableAdvancedConfigurations'] = 0;
 \$global['videoStorageLimitMinutes'] = 0;
-//\$global['webSiteRootURL'] = '{$_POST['webSiteRootURL']}';
-// get the subdirectory, if exists
-\$subDir = str_replace(array(\$_SERVER[\"DOCUMENT_ROOT\"], 'videos/configuration.php'), array('',''), __FILE__);
-\$global['webSiteRootURL'] = \"http\".(!empty(\$_SERVER['HTTPS'])?\"s\":\"\").\"://\".\$_SERVER['SERVER_NAME'].\$subDir;
-
+if(!empty(\$_SERVER['SERVER_NAME']) && \$_SERVER['SERVER_NAME']!=='localhost' && !filter_var(\$_SERVER['SERVER_NAME'], FILTER_VALIDATE_IP)) { 
+    // get the subdirectory, if exists
+    \$subDir = str_replace(array(\$_SERVER[\"DOCUMENT_ROOT\"], 'videos/configuration.php'), array('',''), __FILE__);
+    \$global['webSiteRootURL'] = \"http\".(!empty(\$_SERVER['HTTPS'])?\"s\":\"\").\"://\".\$_SERVER['SERVER_NAME'].\$subDir;
+}else{
+    \$global['webSiteRootURL'] = '{$_POST['webSiteRootURL']}';
+}
 \$global['systemRootPath'] = '{$_POST['systemRootPath']}';
 \$global['salt'] = '{$_POST['salt']}';
-
+\$global['enableDDOSprotection'] = 1;
+\$global['ddosMaxConnections'] = 40;
+\$global['ddosSecondTimeout'] = 5;
+\$global['strictDDOSprotection'] = 0;
 
 \$mysqlHost = '{$_POST['databaseHost']}';
 \$mysqlPort = '{$_POST['databasePort']}';

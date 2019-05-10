@@ -10,7 +10,7 @@ require_once $global['systemRootPath'] . 'objects/functions.php';
 // gettig the mobile submited value
 $inputJSON = url_get_contents('php://input');
 $input = json_decode($inputJSON, TRUE); //convert JSON into array
-if(!empty($input) && empty($_POST)){
+if(!empty($input)){
     foreach ($input as $key => $value) {
         $_POST[$key]=$value;
     }
@@ -25,6 +25,13 @@ require_once $global['systemRootPath'] . 'objects/category.php';
 Category::clearCacheCount();
 
 error_log("Start Login Request");
+
+error_log("redirectUri: ".$_POST['redirectUri']);
+
+if(!preg_match("|^".$global['webSiteRootURL']."|", $_POST['redirectUri']))
+$_POST['redirectUri']=$global['webSiteRootURL'];
+
+error_log("sane redirectUri: ".$_POST['redirectUri']);
 
 use Hybridauth\Hybridauth;
 use Hybridauth\HttpClient;
@@ -114,6 +121,9 @@ if(!empty($_GET['encodedPass'])){
     $_POST['encodedPass'] = $_GET['encodedPass'];
 }
 if(empty($_POST['user']) || empty($_POST['pass'])){
+    error_log("User or pass empty on login POST: ".json_encode($_POST));
+    error_log("User or pass empty on login GET: ".json_encode($_GET));
+    error_log("User or pass empty on login Request: ".json_encode($_REQUEST));
     $object->error = __("User and Password can not be blank");
     die(json_encode($object));
 }
@@ -141,6 +151,8 @@ $object->isLogged = User::isLogged();
 $object->isAdmin = User::isAdmin();
 $object->canUpload = User::canUpload();
 $object->canComment = User::canComment();
+$object->redirectUri=$_POST['redirectUri'];
+
 if (empty($advancedCustomUser->userCanNotChangeCategory) || User::isAdmin()) {
     $object->categories = Category::getAllCategories(true);
 }else{
@@ -166,6 +178,16 @@ if($object->isLogged){
     $p = YouPHPTubePlugin::loadPluginIfEnabled("VideoHLS");
     if(!empty($p)){
         $object->videoHLS = true;
+    }
+    
+    $p = YouPHPTubePlugin::loadPluginIfEnabled("Subscription");
+    if(!empty($p)){
+        $object->Subscription = Subscription::getAllFromUser($object->id);
+    }
+    
+    $p = YouPHPTubePlugin::loadPluginIfEnabled("PayPerView");
+    if(!empty($p)){
+        $object->PayPerView = PayPerView::getAllPPVFromUser($object->id);
     }
 }
 

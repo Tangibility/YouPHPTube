@@ -9,6 +9,27 @@ if ($video['rotation'] === "90" || $video['rotation'] === "270") {
     $vjsClass = "vjs-16-9";
     $embedResponsiveClass = "embed-responsive-16by9";
 }
+$currentTime = 0;
+if(!empty($video['externalOptions']->videoStartSeconds)){
+    $video['externalOptions']->videoStartSeconds = parseDurationToSeconds($video['externalOptions']->videoStartSeconds);
+}else{
+    $video['externalOptions']->videoStartSeconds = 0;
+}
+if (isset($_GET['t'])) {
+    $currentTime = intval($_GET['t']);
+} else if (!empty($video['progress']['lastVideoTime'])) {
+    $currentTime = intval($video['progress']['lastVideoTime']);
+    $maxCurrentTime = parseDurationToSeconds($video['duration']);
+    if ($maxCurrentTime <= $currentTime + 5) {
+        if (!empty($video['externalOptions']->videoStartSeconds)) {
+            $currentTime = intval($video['externalOptions']->videoStartSeconds);
+        } else {
+            $currentTime = 0;
+        }
+    }
+} else if (!empty($video['externalOptions']->videoStartSeconds)) {
+    $currentTime = intval($video['externalOptions']->videoStartSeconds);
+}
 ?>
 <div class="row main-video" id="mvideo">
     <div class="col-sm-2 col-md-2 firstC"></div>
@@ -24,13 +45,13 @@ if ($video['rotation'] === "90" || $video['rotation'] === "270") {
                 </button>
             </div>
             <div id="main-video" class="embed-responsive <?php echo $embedResponsiveClass; ?>">
-                <video playsinline
+                <video playsinline webkit-playsinline="webkit-playsinline" 
                 <?php if ($config->getAutoplay() && false) { // disable it for now  ?>
                            autoplay="true"
                            muted="muted"
                        <?php } ?>
                        preload="auto"
-                       poster="<?php echo $poster; ?>" controls class="embed-responsive-item video-js vjs-default-skin <?php echo $vjsClass; ?> vjs-big-play-centered" id="mainVideo" data-setup='{ "aspectRatio": "<?php echo $aspectRatio; ?>" }'>
+                       poster="<?php echo $poster; ?>" controls class="embed-responsive-item video-js vjs-default-skin <?php echo $vjsClass; ?> vjs-big-play-centered" id="mainVideo" >
                            <?php if ($playNowVideo['type'] == "video") { ?>
                         <!-- <?php echo $playNowVideo['title'], " ", $playNowVideo['filename']; ?> -->
                         <?php
@@ -58,6 +79,10 @@ if ($video['rotation'] === "90" || $video['rotation'] === "270") {
                 <?php } ?>
 
             </div>
+
+            <a href="<?php echo $global["HTTP_REFERER"]; ?>" class="btn btn-outline btn-xs" style="position: absolute; top: 5px; right: 5px; display: none;" id="youtubeModeOnFullscreenCloseButton">
+                <i class="fas fa-times"></i>
+            </a>
         </div>
     </div>
     <div class="col-sm-2 col-md-2"></div>
@@ -80,18 +105,18 @@ if ($playNowVideo['type'] == "linkVideo") {
         actions: [{
         name: '<?php echo __("Copy video URL"); ?>',
                 onClick: function () {
-                    copyToClipboard($('#linkFriendly').val());
+                copyToClipboard($('#linkFriendly').val());
                 }, iconClass: 'fas fa-link'
         }, {
         name: '<?php echo __("Copy video URL at current time"); ?>',
                 onClick: function () {
-                    copyToClipboard($('#linkCurrentTime').val());
+                copyToClipboard($('#linkCurrentTime').val());
                 }, iconClass: 'fas fa-link'
         }, {
         name: '<?php echo __("Copy embed code"); ?>',
                 onClick: function () {
-                    $('#textAreaEmbed').focus();
-                    copyToClipboard($('#textAreaEmbed').val());
+                $('#textAreaEmbed').focus();
+                        copyToClipboard($('#textAreaEmbed').val());
                 }, iconClass: 'fas fa-code'
         }
 <?php if (CustomizeUser::canDownloadVideosFromVideo($playNowVideo['id'])) { ?>
@@ -146,67 +171,30 @@ if ($playNowVideo['type'] == "linkVideo") {
                                                     player = videojs('mainVideo');
                                                 }
                                                 try {
+                                                    player.currentTime(<?php echo $currentTime; ?>);
                                                     player.play();
-    <?php
-    if (isset($_GET['t'])) {
-        ?>
-                                                        player.currentTime(<?php echo intval($_GET['t']); ?>);
-        <?php
-    } else if (!empty($video['progress']['lastVideoTime'])) {
-        ?>
-                                                        player.currentTime(<?php echo intval($video['progress']['lastVideoTime']); ?>);
-        <?php
-    }
-    ?>
                                                 } catch (e) {
                                                     setTimeout(function () {
-                                                        player.play();<?php
-    if (isset($_GET['t'])) {
-        ?>
-                                                            player.currentTime(<?php echo intval($_GET['t']); ?>);
-        <?php
-    } else if (!empty($video['progress']['lastVideoTime'])) {
-        ?>
-                                                            player.currentTime(<?php echo intval($video['progress']['lastVideoTime']); ?>);
-        <?php
-    }
-    ?>
+                                                        player.currentTime(<?php echo $currentTime; ?>);
+                                                        player.play();
                                                     }, 1000);
                                                 }
                                             }, 150);
-<?php } else {
-    ?>
+<?php } else { ?>
+
+                                            if (typeof player !== 'undefined') {
+                                                player.currentTime(<?php echo $currentTime; ?>);
+                                            }
                                             if (Cookies.get('autoplay') && Cookies.get('autoplay') !== 'false') {
                                                 setTimeout(function () {
                                                     if (typeof player === 'undefined') {
                                                         player = videojs('mainVideo');
                                                     }
                                                     try {
-    <?php
-    if (isset($_GET['t'])) {
-        ?>
-                                                            player.currentTime(<?php echo intval($_GET['t']); ?>);
-        <?php
-    } else if (!empty($video['progress']['lastVideoTime'])) {
-        ?>
-                                                            player.currentTime(<?php echo intval($video['progress']['lastVideoTime']); ?>);
-        <?php
-    }
-    ?>
                                                         player.play();
                                                     } catch (e) {
                                                         setTimeout(function () {
-    <?php
-    if (isset($_GET['t'])) {
-        ?>
-                                                                player.currentTime(<?php echo intval($_GET['t']); ?>);
-        <?php
-    } else if (!empty($video['progress']['lastVideoTime'])) {
-        ?>
-                                                                player.currentTime(<?php echo intval($video['progress']['lastVideoTime']); ?>);
-        <?php
-    }
-    ?>
+                                                            player.currentTime(<?php echo $currentTime; ?>);
                                                             player.play();
                                                         }, 1000);
                                                     }
@@ -257,29 +245,35 @@ if (!empty($autoPlayVideo)) {
                                                 addView(<?php echo $video['id']; ?>, time);
                                             }
                                         });
+
+                                        this.on('ended', function () {
+                                            var time = Math.round(this.currentTime());
+                                            addView(<?php echo $video['id']; ?>, time);
+                                        });
+
                                     });
                                     player.persistvolume({
                                         namespace: "YouPHPTube"
                                     });
                                     // in case the video is muted
                                     setTimeout(function () {
-										if (typeof player === 'undefined') {
-											player = videojs('mainVideo');
-										}
-                                        if (player.muted()) {
-                                            swal({
-                                                title: "<?php echo __("Your Media is Muted"); ?>",
-                                                text: "<?php echo __("Would you like to unmute it?"); ?>",
-                                                type: "warning",
-                                                showCancelButton: true,
-                                                confirmButtonColor: "#DD6B55",
-                                                confirmButtonText: "<?php echo __("Yes, unmute it!"); ?>",
-                                                closeOnConfirm: true
-                                            },
-                                                    function () {
-                                                        player.muted(false);
-                                                    });
-                                        }
+                                    if (typeof player === 'undefined') {
+                                    player = videojs('mainVideo');
+                                    }
+                                    if (player.muted()) {
+                                    swal({
+                                    title: "<?php echo __("Your Media is Muted"); ?>",
+                                            text: "<?php echo __("Would you like to unmute it?"); ?>",
+                                            type: "warning",
+                                            showCancelButton: true,
+                                            confirmButtonColor: "#DD6B55",
+                                            confirmButtonText: "<?php echo __("Yes, unmute it!"); ?>",
+                                            closeOnConfirm: true
+                                    },
+                                            function () {
+                                            player.muted(false);
+                                            });
+                                    }
                                     }, 1500);
                                     }
                                     );

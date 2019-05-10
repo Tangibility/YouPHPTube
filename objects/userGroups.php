@@ -139,14 +139,14 @@ class UserGroups {
 
     // for users
 
-    static function updateUserGroups($users_id, $array_groups_id){
-        if (!User::isAdmin()) {
+    static function updateUserGroups($users_id, $array_groups_id, $byPassAdmin=false){
+        if (!$byPassAdmin && !User::isAdmin()) {
             return false;
         }
         if (!is_array($array_groups_id)) {
             return false;
         }
-        self::deleteGroupsFromUser($users_id);
+        self::deleteGroupsFromUser($users_id, $byPassAdmin);
         global $global;
         $sql = "INSERT INTO users_has_users_groups ( users_id, users_groups_id) VALUES (?,?)";
         foreach ($array_groups_id as $value) {
@@ -172,7 +172,7 @@ class UserGroups {
         $sql = "SELECT uug.*, ug.* FROM users_groups ug"
                 . " LEFT JOIN users_has_users_groups uug ON users_groups_id = ug.id WHERE users_id = ? ";
         
-        $ids = YouPHPTubePlugin::getDynamicUserGroupsId();
+        $ids = YouPHPTubePlugin::getDynamicUserGroupsId($users_id);
         if(!empty($ids) && is_array($ids)){
             $ids = array_unique($ids);
             $sql .= " OR ug.id IN ('". implode("','", $ids)."') ";
@@ -198,8 +198,8 @@ class UserGroups {
         return $arr;
     }
 
-    static private function deleteGroupsFromUser($users_id){
-        if (!User::isAdmin()) {
+    static private function deleteGroupsFromUser($users_id, $byPassAdmin=false){
+        if (!$byPassAdmin && !User::isAdmin()) {
             return false;
         }
 
