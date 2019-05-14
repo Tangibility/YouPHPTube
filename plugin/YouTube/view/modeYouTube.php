@@ -142,8 +142,8 @@ $contentSearchFound = false;
                         if ($objYTube->MostPopular) {
                             createGallery(!empty($objYTube->MostPopularCustomTitle) ? $objYTube->MostPopularCustomTitle : __("Most popular"), 'likes', $objYTube->MostPopularRowCount, 'mostPopularOrder', __("Most"), __("Fewest"), $orderString, "DESC");
                         }
-
-                        if ($objYTube->Categories && empty($_GET['catName'])) {
+                        $catName = @$_GET['catName'];
+                        if ($objYTube->Categories) {
                             echo "<!-- Do Category -->";
                             unset($_POST['sort']);
                             unset($_POST['rowCount']);
@@ -154,6 +154,9 @@ $contentSearchFound = false;
                                 $showAllVideos = true;
                             }
                             foreach ($categories as $value) {
+                                if(!empty($catName) && $catName !== $value['clean_name']){
+                                    continue;
+                                }
                                 $_GET['catName'] = $value['clean_name'];
                                 unset($_POST['sort']);
                                 $_POST['sort']['v.created'] = "DESC";
