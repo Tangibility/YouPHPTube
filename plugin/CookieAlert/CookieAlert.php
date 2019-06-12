@@ -33,7 +33,7 @@ class CookieAlert extends PluginAbstract {
     
     private function doNotShow(){
         $baseName = basename($_SERVER["SCRIPT_FILENAME"]);
-        if(preg_match("/embed/i", $baseName)){
+        if(preg_match("/embed/i", $baseName) || !empty($_GET['embed'])){
             return true;
         }
         return false;
@@ -41,7 +41,7 @@ class CookieAlert extends PluginAbstract {
 
     public function getEmptyDataObject() {
         $obj = new stdClass();
-        $obj->text = '<b>This website uses cookies</b> &#x1F36A; so we can provide you with the best user experiense. Without these cookies, the website simply would not work.';
+        $obj->text = '<b>This website uses cookies</b> &#x1F36A; so we can provide you with the best user experience. Without these cookies, the website simply would not work.';
         $obj->btnText = 'I agree';
         return $obj;
     }

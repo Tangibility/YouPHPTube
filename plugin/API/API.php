@@ -158,7 +158,13 @@ class API extends PluginAbstract {
             $totalRows = Video::getTotalVideos();
         }
         $SubtitleSwitcher = YouPHPTubePlugin::loadPluginIfEnabled("SubtitleSwitcher");
-        foreach ($rows as $key=>$value) {       
+        foreach ($rows as $key=>$value) {
+            if(is_object($value)){
+                $value = object_to_array($value);
+            }
+            if(empty($value['filename'])){
+                continue;
+            }
             $rows[$key]['images'] = Video::getImageFromFilename($value['filename']);
             $rows[$key]['videos'] = Video::getVideosPaths($value['filename'], true);
             if ($SubtitleSwitcher) {
@@ -288,6 +294,31 @@ class API extends PluginAbstract {
         global $global;
         $this->getToPost();
         require_once $global['systemRootPath'] . 'plugin/GoogleAds_IMA/VMAP.php';
+        exit;
+    }
+    
+    /**
+     * Return the location based on the provided IP
+     * @param type $parameters
+     * 'APISecret' mandatory for security reasons
+     * 'ip' Ip to verify
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&APISecret={APISecret}&ip=2.20.147.123
+     * @return type
+     */
+    public function get_api_IP2Location($parameters) {
+        global $global;
+        $this->getToPost();
+        $obj = $this->getDataObject();
+        if ($obj->APISecret !== @$_GET['APISecret']) {
+            return new ApiObject("APISecret Not valid");
+        }
+        if(YouPHPTubePlugin::isEnabledByName("User_Location")){
+            $row = IP2Location::getLocation($parameters['ip']);
+            if(!empty($row)){
+                return new ApiObject("", false, $row);
+            }
+        }
+        return new ApiObject("IP2Location not working");
         exit;
     }
 

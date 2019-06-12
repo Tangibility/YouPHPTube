@@ -20,10 +20,34 @@ if (!empty($_GET['lang'])) {
 function __($str) {
     global $t;
     if (empty($t[$str])) {
-        return $str;
+        return str_replace(array("'",'"',"<",'>'), array('&apos;','&quot;','&lt;','&gt;'), $str);
     } else {
-        return $t[$str];
+        return str_replace(array("'",'"',"<",'>'), array('&apos;','&quot;','&lt;','&gt;'), $t[$str]);
     }
+}
+
+function isRTL(){
+    /*
+    Arabic
+    Aramaic
+    Azeri
+    Dhivehi/Maldivian
+    Hebrew
+    Kurdish (Sorani)
+    Persian/Farsi
+    Urdu 
+     */
+    $array = array(
+        'JO', // Arabic Jordan
+        'PS', // Arabic Palestinian Territory, Occupied
+        'SY', // Arabic Syrian Arab Republic
+        'IL'  // Hebrew
+        );
+    
+    if(preg_grep( "/{$_SESSION['language']}/i" , $array )){
+        return true;
+    }
+    return false;
 }
 
 function getAllFlags() {

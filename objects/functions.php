@@ -474,10 +474,10 @@ function sendSiteEmail($to, $subject, $message) {
     }
 }
 
-function parseVideos($videoString = null, $autoplay = 0, $loop = 0, $mute = 0, $showinfo = 0, $controls = 1, $time = 0) {
+function parseVideos($videoString = null, $autoplay = 0, $loop = 0, $mute = 0, $showinfo = 0, $controls = 1, $time = 0, $objectFit = "") {
     if (strpos($videoString, 'youtube.com/embed') !== false) {
         return $videoString . (parse_url($videoString, PHP_URL_QUERY) ? '&' : '?') . 'modestbranding=1&showinfo='
-                . $showinfo . "&autoplay={$autoplay}&controls=$controls&loop=$loop&mute=$mute&t=$time";
+                . $showinfo . "&autoplay={$autoplay}&controls=$controls&loop=$loop&mute=$mute&t=$time&objectFit=$objectFit";
     }
     if (strpos($videoString, 'iframe') !== false) {
         // retrieve the video url
@@ -493,7 +493,7 @@ function parseVideos($videoString = null, $autoplay = 0, $loop = 0, $mute = 0, $
 
     if (stripos($link, 'embed') !== false) {
         return $link. (parse_url($link, PHP_URL_QUERY) ? '&' : '?') . 'modestbranding=1&showinfo='
-                . $showinfo . "&autoplay={$autoplay}&controls=$controls&loop=$loop&mute=$mute&t=$time";
+                . $showinfo . "&autoplay={$autoplay}&controls=$controls&loop=$loop&mute=$mute&t=$time&objectFit=$objectFit";
     } else if (strpos($link, 'youtube.com') !== false) {
 
         preg_match(
@@ -502,7 +502,7 @@ function parseVideos($videoString = null, $autoplay = 0, $loop = 0, $mute = 0, $
         //the ID of the YouTube URL: x6qe_kVaBpg
         $id = $matches[1];
         return '//www.youtube.com/embed/' . $id . '?modestbranding=1&showinfo='
-                . $showinfo . "&autoplay={$autoplay}&controls=$controls&loop=$loop&mute=$mute&te=$time";
+                . $showinfo . "&autoplay={$autoplay}&controls=$controls&loop=$loop&mute=$mute&te=$time&objectFit=$objectFit";
     } else if (strpos($link, 'youtu.be') !== false) {
         //https://youtu.be/9XXOBSsPoMU
         preg_match(
@@ -511,7 +511,7 @@ function parseVideos($videoString = null, $autoplay = 0, $loop = 0, $mute = 0, $
         //the ID of the YouTube URL: x6qe_kVaBpg
         $id = $matches[1];
         return '//www.youtube.com/embed/' . $id . '?modestbranding=1&showinfo='
-                . $showinfo . "&autoplay={$autoplay}&controls=$controls&loop=$loop&mute=$mute&te=$time";
+                . $showinfo . "&autoplay={$autoplay}&controls=$controls&loop=$loop&mute=$mute&te=$time&objectFit=$objectFit";
     } else if (strpos($link, 'player.vimeo.com') !== false) {
         // works on:
         // http://player.vimeo.com/video/37985580?title=0&amp;byline=0&amp;portrait=0
@@ -673,9 +673,84 @@ function canUseCDN($videos_id) {
     return $canUseCDN[$videos_id];
 }
 
-function getVideosURL($fileName) {
+function clearVideosURL($fileName="") {
+    global $global;
+    $path = "{$global['systemRootPath']}videos/cache/getVideosURL/";
+    if(empty($path)){
+        rrmdir($path);
+    }else{
+        $cacheFilename = "{$path}{$fileName}.cache";
+        @unlink($cacheFilename);
+    }
+}
+
+$minimumExpirationTime = false;
+function minimumExpirationTime(){
+    global $minimumExpirationTime;
+    if(empty($minimumExpirationTime)){
+        $aws_s3 = YouPHPTubePlugin::getObjectDataIfEnabled('AWS_S3');
+        $bb_b2 = YouPHPTubePlugin::getObjectDataIfEnabled('Blackblaze_B2');
+        $secure = YouPHPTubePlugin::getObjectDataIfEnabled('SecureVideosDirectory');
+        $minimumExpirationTime = 60*60*24*365;//1 year
+        if(!empty($aws_s3) && $aws_s3->presignedRequestSecondsTimeout < $minimumExpirationTime){
+            $minimumExpirationTime = $aws_s3->presignedRequestSecondsTimeout;
+        }
+        if(!empty($bb_b2) && $bb_b2->presignedRequestSecondsTimeout < $minimumExpirationTime){
+            $minimumExpirationTime = $bb_b2->presignedRequestSecondsTimeout;
+        }
+        if(!empty($secure) && $secure->tokenTimeOut < $minimumExpirationTime){
+            $minimumExpirationTime = $secure->tokenTimeOut;
+        }
+    }
+    return $minimumExpirationTime;
+}
+
+$cacheExpirationTime = false;
+function cacheExpirationTime(){
+    global $cacheExpirationTime;
+    if(empty($cacheExpirationTime)){
+        $obj = YouPHPTubePlugin::getObjectDataIfEnabled('Cache');
+        $cacheExpirationTime = $obj->cacheTimeInSeconds;
+    }
+    return intval($cacheExpirationTime);
+}
+
+/**
+ * tell if a file should recreate a cache, based on its time and the plugins toke expirations
+ * @param type $filename
+ * @return boolean
+ */
+function recreateCache($filename){
+    if(!file_exists($filename) || time()-filemtime($filename)>  minimumExpirationTime()){
+        return true;
+    }
+    return false;
+}
+
+function getVideosURL($fileName, $cache = true) {
+    global $global;
     if (empty($fileName)) {
         return array();
+    }
+    $time = microtime();
+    $time = explode(' ', $time);
+    $time = $time[1] + $time[0];
+    $start = $time;
+    
+    $path = "{$global['systemRootPath']}videos/cache/getVideosURL/";
+    make_path($path);
+    $cacheFilename = "{$path}{$fileName}.cache";
+    //var_dump($cacheFilename, recreateCache($cacheFilename), minimumExpirationTime());
+    if(file_exists($cacheFilename) && $cache && !recreateCache($cacheFilename)){
+        $json = file_get_contents($cacheFilename);
+        $time = microtime();
+        $time = explode(' ', $time);
+        $time = $time[1] + $time[0];
+        $finish = $time;
+        $total_time = round(($finish - $start), 4);
+        error_log("getVideosURL Cache in {$total_time} seconds. fileName: $fileName ");
+        error_log("getVideosURL age: ".(time()-filemtime($cacheFilename))." minimumExpirationTime: ".minimumExpirationTime());
+        return object_to_array(json_decode($json));
     }
     global $global;
     $types = array('', '_Low', '_SD', '_HD');
@@ -763,6 +838,15 @@ function getVideosURL($fileName) {
             }
         }
     }
+    
+    file_put_contents($cacheFilename, json_encode($files));
+    
+    $time = microtime();
+    $time = explode(' ', $time);
+    $time = $time[1] + $time[0];
+    $finish = $time;
+    $total_time = round(($finish - $start), 4);
+    error_log("getVideosURL generated in {$total_time} seconds. fileName: $fileName ");
     return $files;
 }
 

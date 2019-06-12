@@ -8,6 +8,15 @@ if (!isset($global['systemRootPath'])) {
 
 require_once $global['systemRootPath'] . 'objects/video.php';
 
+// for mobile login
+if(!empty($_GET['user']) && !empty($_GET['pass'])){
+    $user = $_GET['user'];
+    $password = $_GET['pass'];
+
+    $userObj = new User(0, $user, $password);
+    $userObj->login(false, true);
+}
+
 if (!empty($_GET['v'])) {
     $video = Video::getVideo($_GET['v'], "viewable", false, false, false, true);
 } else if (!empty($_GET['videoName'])) {
@@ -91,6 +100,9 @@ if (!empty($_GET['loop'])) {
 }
 if (!empty($_GET['mute'])) {
     $mute = 'muted="muted"';
+}
+if (!empty($_GET['objectFit'])) {
+    $objectFit = 'object-fit: '.$_GET['objectFit'];
 }
 if (!empty($_GET['t'])) {
     $t = intval($_GET['t']);
@@ -208,8 +220,8 @@ if (!empty($_GET['t'])) {
             <?php
         } else {
             ?>
-            <video style="width: 100%; height: 100%; position: absolute; top: 0;" playsinline webkit-playsinline poster="<?php echo $poster; ?>" <?php echo $controls; ?> <?php echo $loop; ?>   <?php echo $mute; ?>
-                   class="video-js vjs-default-skin vjs-big-play-centered <?php echo $vjsClass; ?> " id="mainVideo"  data-setup='{"fluid": true }'>
+            <video style="width: 100%; height: 100%; position: fixed; top: 0; <?php echo $objectFit; ?>" playsinline webkit-playsinline poster="<?php echo $poster; ?>" <?php echo $controls; ?> <?php echo $loop; ?>   <?php echo $mute; ?> 
+                   class="video-js vjs-default-skin vjs-big-play-centered <?php echo $vjsClass; ?> " id="mainVideo">
                        <?php
                        echo getSources($video['filename']);
                        ?>

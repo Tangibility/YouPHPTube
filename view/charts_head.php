@@ -121,8 +121,8 @@ $start = microtime(true);
 $bg = $bc = $labels = $labelsFull = $datas = $datas7 = $datas30 = $datasToday = $datasUnique = array();
 foreach ($videos as $value) {
     $value = (array) $value;
-    $labelsFull[] = ($value["title"]);
-    $labels[] = substr($value["title"], 0, 20);
+    $labelsFull[] = xss_esc($value["title"]);
+    $labels[] = substr(xss_esc($value["title"]), 0, 20);
     $datas[] = $value["statistc_all"];
     $datasToday[] = $value["statistc_today"];
     $datas7[] = $value["statistc_week"];
