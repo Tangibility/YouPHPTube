@@ -16,7 +16,7 @@ function createGallery($title, $sort, $rowCount, $getName, $mostWord, $lessWord,
     }
     $getName = str_replace(array("'", '"', "&quot;", "&#039;"), array('', '', '', ''), xss_esc($getName));
     if (!empty($_GET['showOnly'])) {
-        $rowCount = 60;
+        $rowCount = 24;
     }
     global $global, $args, $url;
     $paggingId = uniqid();
@@ -141,6 +141,13 @@ function createGallerySection($videos, $crc = "", $get = array()) {
                 $startG = microtime(true);
                 $images = Video::getImageFromFilename($value['filename'], $value['type']);
                 @$timesG[__LINE__] += microtime(true) - $startG;
+                if(!is_object($images)){
+                    $images = new stdClass();
+                    $images->thumbsGif = "";
+                    $images->poster = "{$global['webSiteRootURL']}view/img/notfound.jpg";
+                    $images->thumbsJpg = "{$global['webSiteRootURL']}view/img/notfoundThumbs.jpg";
+                    $images->thumbsJpgSmall = "{$global['webSiteRootURL']}view/img/notfoundThumbsSmall.jpg";
+                }
                 $startG = microtime(true);
                 $imgGif = $images->thumbsGif;
                 $poster = $images->thumbsJpg;

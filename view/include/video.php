@@ -98,8 +98,7 @@ if ($playNowVideo['type'] == "linkVideo") {
     echo '$("time.duration").hide();';
 }
 ?>
-
-        var menu = new BootstrapMenu('#mainVideo', {
+var menu = new BootstrapMenu('#mainVideo', {
         actions: [{
         name: '<?php echo __("Copy video URL"); ?>',
                 onClick: function () {
@@ -152,6 +151,7 @@ if ($playNowVideo['type'] == "linkVideo") {
 
                                         ]
                                     });
+
 
 
                                     if (typeof player === 'undefined') {

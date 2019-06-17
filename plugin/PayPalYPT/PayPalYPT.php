@@ -94,6 +94,18 @@ class PayPalYPT extends PluginAbstract {
         return false;
     }
 
+    public function getPlanDetails($plan_id) {
+        global $global;
+
+        require $global['systemRootPath'] . 'plugin/PayPalYPT/bootstrap.php';
+        try {
+            $plan = Plan::get($plan_id, $apiContext);
+        } catch (Exception $ex) {
+            return $ex;
+        }
+        return $plan;
+    }
+
     private function executePayment() {
         global $global;
         require $global['systemRootPath'] . 'plugin/PayPalYPT/bootstrap.php';
@@ -143,7 +155,7 @@ class PayPalYPT extends PluginAbstract {
         return $payment;
     }
 
-    private function createBillingPlan($redirect_url, $cancel_url, $total = '1.00', $currency = "USD", $frequency = "Month", $interval = 1, $name = 'Base Agreement', $plans_id=0) {
+    private function createBillingPlan($redirect_url, $cancel_url, $total = '1.00', $currency = "USD", $frequency = "Month", $interval = 1, $name = 'Base Agreement', $plans_id = 0) {
         global $global;
 
         require $global['systemRootPath'] . 'plugin/PayPalYPT/bootstrap.php';
@@ -155,8 +167,8 @@ class PayPalYPT extends PluginAbstract {
                 ->setType('INFINITE');
 
         $paymentDefinitionArray = array();
-        
-        if(!empty($plans_id)){
+
+        if (!empty($plans_id)) {
             $subs = new SubscriptionPlansTable($plans_id);
             $trialDays = $subs->getHow_many_days_trial();
             if (!empty($trialDays)) {
@@ -170,7 +182,7 @@ class PayPalYPT extends PluginAbstract {
                 $paymentDefinitionArray[] = $trialPaymentDefinition;
             }
         }
-        
+
         // Set billing plan definitions
         $paymentDefinition = new PaymentDefinition();
         $paymentDefinition->setName('Regular Payments')
@@ -181,17 +193,29 @@ class PayPalYPT extends PluginAbstract {
                 ->setAmount(new Currency(array('value' => $total, 'currency' => $currency)));
         $paymentDefinitionArray[] = $paymentDefinition;
 
+        $plan->setPaymentDefinitions($paymentDefinitionArray);
+
         // Set merchant preferences
         $merchantPreferences = new MerchantPreferences();
-        $merchantPreferences->setReturnUrl($redirect_url)
-                ->setCancelUrl($cancel_url)
-                //->setNotifyUrl($notify_url)
-                ->setAutoBillAmount('yes')
-                ->setInitialFailAmountAction('CONTINUE')
-                ->setMaxFailAttempts('0')
-                ->setSetupFee(new Currency(array('value' => $total, 'currency' => $currency)));
+        // if there is a trial do not charge a setup fee
+        if (empty($trialDays)) {
+            $merchantPreferences->setReturnUrl($redirect_url)
+                    ->setCancelUrl($cancel_url)
+                    //->setNotifyUrl($notify_url)
+                    ->setAutoBillAmount('yes')
+                    ->setInitialFailAmountAction('CONTINUE')
+                    ->setMaxFailAttempts('0')
+                    ->setSetupFee(new Currency(array('value' => $total, 'currency' => $currency)));
 
-        $plan->setPaymentDefinitions($paymentDefinitionArray);
+        }else{
+            $merchantPreferences->setReturnUrl($redirect_url)
+                    ->setCancelUrl($cancel_url)
+                    //->setNotifyUrl($notify_url)
+                    ->setAutoBillAmount('yes')
+                    ->setInitialFailAmountAction('CONTINUE')
+                    ->setMaxFailAttempts('0');
+
+        }
         $plan->setMerchantPreferences($merchantPreferences);
 
         //create plan
@@ -253,7 +277,7 @@ class PayPalYPT extends PluginAbstract {
         $planId = $this->getPlanId();
         if (empty($planId)) {
             //createBillingPlan($redirect_url, $cancel_url, $total = '1.00', $currency = "USD", $frequency = "Month", $interval = 1, $name = 'Base Agreement') 
-            $plan = $this->createBillingPlan($redirect_url, $cancel_url, $total, $currency, $frequency, $interval, $name, $planId);
+            $plan = $this->createBillingPlan($redirect_url, $cancel_url, $total, $currency, $frequency, $interval, $name, $_POST['plans_id']);
 
             if (empty($plan)) {
                 error_log("PayPal Error setUpSubscription Plan ID is empty ");
@@ -269,7 +293,16 @@ class PayPalYPT extends PluginAbstract {
         }
         // Create new agreement
         // the setup fee will be the first payment and start date is the next payment
-        $startDate = date("Y-m-d\TH:i:s.000\Z", strtotime("+{$interval} {$frequency}"));
+        
+        $subs = new SubscriptionPlansTable($_POST['plans_id']);
+        if(!empty($subs)){
+            $trialDays = $subs->getHow_many_days_trial();
+        }
+        if(!empty($trialDays)){
+            $startDate = date("Y-m-d\TH:i:s.000\Z", strtotime("+1 hour")); 
+        }else{
+            $startDate = date("Y-m-d\TH:i:s.000\Z", strtotime("+{$interval} {$frequency}"));
+        }
         $agreement = new Agreement();
         $agreement->setName($name)
                 ->setDescription($name)

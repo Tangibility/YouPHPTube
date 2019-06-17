@@ -582,7 +582,7 @@ if (!class_exists('Video')) {
                     . " (SELECT count(id) FROM likes as l where l.videos_id = v.id AND `like` = 1 ) as likes, "
                     . " (SELECT count(id) FROM likes as l where l.videos_id = v.id AND `like` = -1 ) as dislikes ";
             if (User::isLogged()) {
-                $sql .= ", (SELECT `like` FROM likes as l where l.videos_id = v.id AND users_id = " . User::getId() . " ) as myVote ";
+                $sql .= ", (SELECT `like` FROM likes as l where l.videos_id = v.id AND users_id = '" . User::getId() . "' ) as myVote ";
             } else {
                 $sql .= ", 0 as myVote ";
             }
@@ -628,7 +628,7 @@ if (!class_exists('Video')) {
             if (!empty($_GET['channelName'])) {
                 $user = User::getChannelOwner($_GET['channelName']);
                 if(!empty($user['id'])){
-                    $sql .= " AND v.users_id = {$user['id']} ";
+                    $sql .= " AND v.users_id = '{$user['id']}' ";
                 }
             }
 
@@ -778,12 +778,15 @@ if (!class_exists('Video')) {
                     . " WHERE 1=1 ";
 
             if ($showOnlyLoggedUserVideos === true && !User::isAdmin()) {
-                $sql .= " AND v.users_id = '" . User::getId() . "'";
+                $uid = intval(User::getId());
+                $sql .= " AND v.users_id = '{$uid}'";
             } elseif (!empty($showOnlyLoggedUserVideos)) {
-                $sql .= " AND v.users_id = '{$showOnlyLoggedUserVideos}'";
+                $uid = intval($showOnlyLoggedUserVideos);
+                $sql .= " AND v.users_id = '{$uid}'";
             } else if (!empty($_GET['channelName'])) {
                 $user = User::getChannelOwner($_GET['channelName']);
-                $sql .= " AND v.users_id = {$user['id']} ";
+                $uid = intval($user['id']);
+                $sql .= " AND v.users_id = '{$uid}' ";
             }
             if (!empty($videosArrayId) && is_array($videosArrayId)) {
                 $sql .= " AND v.id IN ( '" . implode("', '", $videosArrayId) . "') ";
@@ -915,7 +918,7 @@ if (!class_exists('Video')) {
                 return $total;
             }
             $return = json_decode(file_get_contents($cacheFileName));
-            if (time() - filemtime($cacheFileName) > 60) {
+            if (time() - filemtime($cacheFileName) > cacheExpirationTime()) {
                 // file older than 1 min
                 $command = ("php '{$global['systemRootPath']}objects/getAllVideosAsync.php' '$status' '$showOnlyLoggedUserVideos' '$ignoreGroup' '" . json_encode($videosArrayId) . "' '$getStatistcs' '$showUnlisted' '$activeUsersOnly' '{$get}' '{$post}' '{$cacheFileName}'");
                 error_log("getAllVideosAsync: {$command}");
@@ -960,7 +963,7 @@ if (!class_exists('Video')) {
 
             if (!empty($_GET['channelName'])) {
                 $user = User::getChannelOwner($_GET['channelName']);
-                $sql .= " AND v.users_id = {$user['id']} ";
+                $sql .= " AND v.users_id = '{$user['id']}' ";
             }
 
             $sql .= YouPHPTubePlugin::getVideoWhereClause();
@@ -1012,7 +1015,7 @@ if (!class_exists('Video')) {
             if ($showOnlyLoggedUserVideos === true && !User::isAdmin()) {
                 $sql .= " AND v.users_id = '" . User::getId() . "'";
             } elseif (is_int($showOnlyLoggedUserVideos)) {
-                $sql .= " AND v.users_id = {$showOnlyLoggedUserVideos}";
+                $sql .= " AND v.users_id = '{$showOnlyLoggedUserVideos}'";
             }
             if (!empty($_GET['catName'])) {
                 $sql .= " AND c.clean_name = '{$_GET['catName']}'";
@@ -1033,7 +1036,8 @@ if (!class_exists('Video')) {
             }
             if (!empty($_GET['channelName'])) {
                 $user = User::getChannelOwner($_GET['channelName']);
-                $sql .= " AND v.users_id = {$user['id']} ";
+                $uid = intval($user['id']);
+                $sql .= " AND v.users_id = '{$uid}' ";
             }
                         
             $sql .= YouPHPTubePlugin::getVideoWhereClause();
@@ -1083,7 +1087,7 @@ if (!class_exists('Video')) {
                 return $total;
             }
             $return = json_decode(file_get_contents($cacheFileName));
-            if (time() - filemtime($cacheFileName) > 60) {
+            if (time() - filemtime($cacheFileName) > cacheExpirationTime()) {
                 // file older than 1 min
                 $command = ("php '{$global['systemRootPath']}objects/getTotalVideosInfoAsync.php' "
                         . " '$status' '$showOnlyLoggedUserVideos' '$ignoreGroup', '" . json_encode($videosArrayId) . "', "
@@ -1109,9 +1113,11 @@ if (!class_exists('Video')) {
              */
             $viewable = array('a', 'xmp4', 'xwebm', 'xmp3', 'xogg');
             if (!empty($_GET['videoName'])) {
+                $post = $_POST;
                 if ($showUnlisted || self::isOwnerFromCleanTitle($_GET['videoName']) || User::isAdmin()) {
                     $viewable[] = "u";
                 }
+                $_POST = $post;
             }
             return $viewable;
         }
@@ -2127,8 +2133,15 @@ if (!class_exists('Video')) {
             return $path;
         }
 
-        static function getImageFromFilename($filename, $type = "video") {
-            return self::getImageFromFilenameAsync($filename, $type);
+        static function getImageFromFilename($filename, $type = "video", $async = false) {
+            global $advancedCustom;
+            // I dont know why but I had to remove it to avoid ERR_RESPONSE_HEADERS_TOO_BIG
+            header_remove('Set-Cookie');
+            if(empty($advancedCustom->AsyncJobs) && !$async){
+                return self::getImageFromFilename_($filename, $type);
+            }else{
+                return self::getImageFromFilenameAsync($filename, $type);
+            }
         }
 
         static function getImageFromFilename_($filename, $type = "video") {
@@ -2244,13 +2257,13 @@ if (!class_exists('Video')) {
                     return array();
                 }
                 file_put_contents($cacheFileName . ".lock", 1);
-                $total = static::getImageFromFilename_($filename, $type = "video");
+                $total = static::getImageFromFilename_($filename, $type);
                 file_put_contents($cacheFileName, json_encode($total));
                 unlink($cacheFileName . ".lock");
                 return $total;
             }
             $return = json_decode(file_get_contents($cacheFileName));
-            if (time() - filemtime($cacheFileName) > 60) {
+            if (time() - filemtime($cacheFileName) > cacheExpirationTime()) {
                 // file older than 1 min
                 $command = ("php '{$global['systemRootPath']}objects/getImageFromFilenameAsync.php' '$filename' '$type' '{$cacheFileName}'");
                 //error_log("getImageFromFilenameAsync: {$command}");
