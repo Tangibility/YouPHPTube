@@ -299,7 +299,7 @@ class PayPalYPT extends PluginAbstract {
             $trialDays = $subs->getHow_many_days_trial();
         }
         if(!empty($trialDays)){
-            $startDate = date("Y-m-d\TH:i:s.000\Z", strtotime("+1 hour")); 
+            $startDate = date("Y-m-d\TH:i:s.000\Z", strtotime("+12 hour")); 
         }else{
             $startDate = date("Y-m-d\TH:i:s.000\Z", strtotime("+{$interval} {$frequency}"));
         }
@@ -407,6 +407,7 @@ class PayPalYPT extends PluginAbstract {
             } else {
                 $amount->total = 0;
             }
+            $amount->total = floatval($amount->total);
             return $amount;
         } else {
             return $payment->getTransactions()[0]->amount;
