@@ -82,7 +82,6 @@ class StripeYPT extends PluginAbstract {
             } catch (Exception $exc) {
                 error_log($exc->getTraceAsString());
             }
-
         }
         return false;
     }
@@ -135,7 +134,7 @@ class StripeYPT extends PluginAbstract {
         return true;
     }
 
-    public function createCostumer($users_id, $stripeToken) {
+        public function createCostumer($users_id, $stripeToken) {
         global $global;
 
         $user = new User($users_id);
@@ -144,7 +143,7 @@ class StripeYPT extends PluginAbstract {
             try {
                 $this->start();
                 return \Stripe\Customer::create([
-                            "description" => "Customer [$users_id] " . $user->getNameIdentification(). "(".$user->getEmail().")",
+                            "description" => "Customer [$users_id] " . $user->getNameIdentification() . "(" . $user->getEmail() . ")",
                             "source" => $stripeToken // obtained with Stripe.js
                 ]);
             } catch (Exception $exc) {
@@ -155,14 +154,39 @@ class StripeYPT extends PluginAbstract {
     }
 
     public function getCostumerId($users_id, $stripeToken) {
-        
+
         $costumer = $this->createCostumer($users_id, $stripeToken);
 
         if (!empty($costumer)) {
-            return $costumer->id;
+            if(self::isCostumerValid($costumer->id)){
+                return $costumer->id;
+            }else{
+                return false;
+            }
         }
 
         return false;
+    }
+    
+    public static function isCostumerValid($id){
+        if($id == 'canceled'){
+            return false;
+        }
+        error_log("StripeYPT::isCostumerValid $id");
+        try {
+            $c = \Stripe\Customer::retrieve($id);
+            if($c){
+                error_log("StripeYPT::isCostumerValid IS VALID: ". json_encode($c));
+                return true;
+            }else{
+                error_log("StripeYPT::isCostumerValid NOT FOUND");
+                return false;
+            }
+        } catch (Exception $exc) {
+            error_log("StripeYPT::isCostumerValid ERROR");
+            return false;
+        }
+
     }
 
     private function createBillingPlan($total = '1.00', $currency = "USD", $frequency = "Month", $interval = 1, $name = 'Base Agreement') {
@@ -181,7 +205,7 @@ class StripeYPT extends PluginAbstract {
         ]);
     }
 
-    static function updateBillingPlan($plans_id, $total = '1.00', $currency = "USD", $interval = 1, $name = 'Base Agreement') {
+    function updateBillingPlan($plans_id, $total = '1.00', $currency = "USD", $interval = 1, $name = 'Base Agreement') {
         global $global;
         if (empty($plan_id)) {
             return false;
@@ -197,7 +221,7 @@ class StripeYPT extends PluginAbstract {
                     'amount' => self::removeDot($total),
         ]);
     }
-    
+
     static function getSubscriptions($stripe_costumer_id, $plans_id) {
         if (!User::isAdmin()) {
             error_log("getSubscription: User not admin");
@@ -213,12 +237,12 @@ class StripeYPT extends PluginAbstract {
         $costumer = \Stripe\Customer::retrieve($stripe_costumer_id);
         foreach ($costumer->subscriptions->data as $value) {
             $subscription = \Stripe\Subscription::retrieve($value->id);
-            if($subscription->metadata->plans_id == $plans_id){
-                error_log("StripeYPT::getSubscriptions $stripe_costumer_id, $plans_id ". json_encode($subscription));
+            if ($subscription->metadata->plans_id == $plans_id) {
+                error_log("StripeYPT::getSubscriptions $stripe_costumer_id, $plans_id " . json_encode($subscription));
                 return $subscription;
             }
         }
-        error_log("StripeYPT::getSubscriptions ERROR $stripe_costumer_id, $plans_id ". json_encode($costumer));
+        error_log("StripeYPT::getSubscriptions ERROR $stripe_costumer_id, $plans_id " . json_encode($costumer));
         return false;
     }
 
@@ -236,6 +260,11 @@ class StripeYPT extends PluginAbstract {
         }
         // check costumer
         $sub = Subscription::getOrCreateStripeSubscription(User::getId(), $plans_id);
+        
+        if(!self::isCostumerValid($sub['stripe_costumer_id'])){
+            $sub['stripe_costumer_id'] = "";
+        }
+        
         if (empty($sub['stripe_costumer_id'])) {
             $sub['stripe_costumer_id'] = $this->getCostumerId(User::getId(), $stripeToken);
             if (empty($sub['stripe_costumer_id'])) {
@@ -272,21 +301,21 @@ class StripeYPT extends PluginAbstract {
         $metadata->stripe_costumer_id = $sub['stripe_costumer_id'];
 
         $parameters = [
-                    "customer" => $sub['stripe_costumer_id'],
-                    "items" => [
-                        [
-                            "plan" => $stripe_plan_id,
-                        ]
-                    ],
-                    "metadata" => [
-                        'users_id' => User::getId(),
-                        'plans_id' => $plans_id,
-                        'stripe_costumer_id' => $sub['stripe_costumer_id']
-                    ]
+            "customer" => $sub['stripe_costumer_id'],
+            "items" => [
+                [
+                    "plan" => $stripe_plan_id,
+                ]
+            ],
+            "metadata" => [
+                'users_id' => User::getId(),
+                'plans_id' => $plans_id,
+                'stripe_costumer_id' => $sub['stripe_costumer_id']
+            ]
         ];
-        
+
         $trialDays = $subs->getHow_many_days_trial();
-        if(!empty($trialDays)) {
+        if (!empty($trialDays)) {
             $trial = strtotime("+{$trialDays} days");
             $parameters['trial_end'] = $trial;
         }
@@ -305,12 +334,44 @@ class StripeYPT extends PluginAbstract {
         $payment_amount = StripeYPT::addDot($payload->data->object->amount);
         $users_id = @$plan['users_id'];
         $plans_id = @$plan['subscriptions_plans_id'];
-        if(!empty($users_id)){
-            $pluginS->addBalance($users_id, $payment_amount, "Stripe recurrent: ".$payload->data->object->description, json_encode($payload));
-            if(!empty($plans_id)){
-                Subscription::renew($users_id, $plans_id);                
+        if (!empty($users_id)) {
+            $pluginS->addBalance($users_id, $payment_amount, "Stripe recurrent: " . $payload->data->object->description, json_encode($payload));
+            if (!empty($plans_id)) {
+                Subscription::renew($users_id, $plans_id);
             }
         }
+    }
+
+    function getAllSubscriptions($status = 'active') {
+        if (!User::isAdmin()) {
+            error_log("getAllSubscriptions: User not admin");
+            return false;
+        }
+        global $global;
+        $this->start();
+        return \Stripe\Subscription::all(['limit' => 1000, 'status' => $status]);
+    }
+
+    function cancelSubscriptions($id) {
+        if (!User::isAdmin()) {
+            error_log("cancelSubscriptions: User not admin");
+            return false;
+        }
+        global $global;
+        try {
+            $this->start();
+            $sub = \Stripe\Subscription::retrieve($id);
+            $sub->cancel();
+            return true;
+        } catch (Exception $exc) {
+            return false;
+        }
+    }
+
+    public function getPluginMenu() {
+        global $global;
+        $filename = $global['systemRootPath'] . 'plugin/StripeYPT/pluginMenu.html';
+        return file_get_contents($filename);
     }
 
 }
